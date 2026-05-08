@@ -1,0 +1,13 @@
+[project]
+name = "language-translator-cli"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dotenv>=0.9.9",
+    "sacremoses>=0.1.1",
+    "sentencepiece>=0.2.1",
+    "torch>=2.11.0",
+    "transformers>=5.8.0",
+]
