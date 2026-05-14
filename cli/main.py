@@ -19,8 +19,8 @@ def main():
 
     config_parser = subparsers.add_parser('config', help='Set configuration variables')
     config_parser.add_argument('--llm_provider', type=str, default='', help="Choose LLM provider")
-    config_parser.add_argument('--llm_model_name', type=str, default='', help="Choose LLM model")
-    config_parser.add_argument('--llm_api_key', type=str, default='', help="Choose LLM API-key")
+    config_parser.add_argument('--llm_set_model', action='store_true', help="Choose LLM model from the given list.")
+    config_parser.add_argument('--llm_set_api_key', action='store_true', help="Set LLM API-key when requested")
     config_group = config_parser.add_mutually_exclusive_group()
     config_group.add_argument('--model_name', type=str, default='', help='Model name to use for translations')
     config_group.add_argument('--list_model_names', action='store_true', help='Provide list of available models.')
@@ -30,7 +30,7 @@ def main():
     match args.command:
         case 'config':
             from config import config_command
-            config_command(model_name=args.model_name, list_model_names=args.list_model_names, llm_provider=args.llm_provider, llm_model_name=args.model_name, llm_api_key=args.llm_api_key)
+            config_command(model_name=args.model_name, list_model_names=args.list_model_names, llm_provider=args.llm_provider, llm_set_model=args.llm_set_model, llm_set_api_key=args.llm_set_api_key)
 
         case 'translate':
             from translator import translate_command
