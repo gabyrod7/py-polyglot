@@ -94,7 +94,7 @@ def main():
 
     match args.command:
         case "run_local":
-            from run_local import (
+            from .run_local import (
                 configure_local_model,
                 list_local_models,
                 run_local_command,
@@ -122,7 +122,7 @@ def main():
                 run_local_parser.print_help()
 
         case "run_remote":
-            from run_remote import (
+            from .run_remote import (
                 configure_remote_api_key,
                 configure_remote_model,
                 configure_remote_provider,
