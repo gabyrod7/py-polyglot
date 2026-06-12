@@ -1,6 +1,6 @@
 import os
 from huggingface_hub import list_models
-from dotenv import set_key
+from cli.config import save_environment_variable
 
 
 def run_local_command(query, verbose):
@@ -58,7 +58,7 @@ def configure_local_model(model_name: str) -> None:
     if not model_found:
         raise ValueError(f"The model {model_name} could not be found.")
 
-    set_key(dotenv_path=".env", key_to_set="MODEL_NAME", value_to_set=model_name)
+    save_environment_variable(key="MODEL_NAME", value=model_name)
     os.environ["MODEL_NAME"] = model_name
     print(f"Default model set to {model_name}")
 
@@ -69,6 +69,7 @@ def configure_hf_token() -> None:
     if not token:
         raise ValueError("The HuggingFace token cannot be empty or only white spaces.")
 
-    set_key(dotenv_path=".env", key_to_set="HF_TOKEN", value_to_set=token)
+    save_environment_variable(key="HF_TOKEN", value=token)
+
     os.environ["HF_TOKEN"] = token
     print("HuggingFace token has been set.")

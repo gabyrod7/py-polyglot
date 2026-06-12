@@ -1,9 +1,7 @@
 import argparse
 
-from .config import load_config
-load_config()
-#from dotenv import load_dotenv
-#load_dotenv()
+from .config import load_config_file
+load_config_file()
 
 
 def main():

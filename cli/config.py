@@ -14,14 +14,15 @@ def get_config_path() -> str:
     config_home = get_config_dir()
     return os.path.join(config_home, 'config.env')
 
-def load_config() -> bool:
+def load_config_file() -> bool:
     return load_dotenv(get_config_path())
 
-def save_config(key: str, value: str) -> None:
+def save_environment_variable(key: str, value: str) -> None:
     config_path = get_config_path()
     if not os.path.exists(config_path):
         os.makedirs(get_config_dir(), exist_ok=True)
         with open(config_path, 'w'):
             pass
+        os.chmod(config_path, 0o0600)
 
-    set_key(config_path, key, value)
+    set_key(dotenv_path=config_path, key_to_set=key, value_to_set=value)
