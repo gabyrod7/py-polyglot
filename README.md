@@ -1,6 +1,6 @@
 # Language Translator CLI
 
-A command-line language translator that can translate text with either a local Hugging Face model or a remote LLM provider.
+A command-line tool to translate words, phrases, and sentences from one language to another using either a local model from Hugging Face or a remote LLM provider.
 
 The CLI currently supports:
 
@@ -20,13 +20,11 @@ Install the project dependencies with:
 ```bash
 uv sync
 ```
-
 or
 
 ```bash
 python -m pip install .
 ```
-
 ## Local Translation
 
 Local translation uses Hugging Face models from Helsinki-NLP. Only models whose names contain `opus-mt_tiny` are supported. Before translating a word, phrase, or sentence, you must choose a model with `run_local config`:
