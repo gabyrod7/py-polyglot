@@ -1,8 +1,8 @@
 import argparse
 
-from dotenv import load_dotenv
+from .config import load_config_file
 
-load_dotenv()
+load_config_file()
 
 
 def main():
@@ -101,25 +101,24 @@ def main():
                 configure_hf_token,
             )
 
-            if args.run_local_command == "translate":
-                run_local_command(args.query, args.verbose)
-            elif args.run_local_command == "config":
-                if (
-                    not args.list_model_names
-                    and args.set_model_name is None
-                    and not args.set_hf_token
-                ):
-                    run_local_config_parser.error(
-                        message="Provide at least one configuration flag when using `run_local config`."
-                    )
-                if args.list_model_names:
-                    list_local_models()
-                if args.set_model_name is not None:
-                    configure_local_model(model_name=args.set_model_name)
-                if args.set_hf_token:
-                    configure_hf_token()
-            else:
-                run_local_parser.print_help()
+            match args.run_local_command:
+                case "translate":
+                    run_local_command(args.query, args.verbose)
+                case "config":
+                    if (
+                        not args.list_model_names
+                        and args.set_model_name is None
+                        and not args.set_hf_token
+                    ):
+                        run_local_parser.print_help()
+                    if args.list_model_names:
+                        list_local_models()
+                    if args.set_model_name is not None:
+                        configure_local_model(model_name=args.set_model_name)
+                    if args.set_hf_token:
+                        configure_hf_token()
+                case _:
+                    run_local_parser.print_help()
 
         case "run_remote":
             from .run_remote import (
@@ -129,23 +128,22 @@ def main():
                 run_remote_command,
             )
 
-            if args.run_remote_command_name == "translate":
-                run_remote_command(args.source_lang, args.target_lang, args.query)
-            elif args.run_remote_command_name == "config":
-                if not (
-                    args.set_provider is not None or args.set_api_key or args.set_model
-                ):
-                    run_remote_config_parser.error(
-                        "Provide at least one configuration flag when using `run_remote config`."
-                    )
-                if args.set_provider is not None:
-                    configure_remote_provider(args.set_provider)
-                if args.set_api_key:
-                    configure_remote_api_key()
-                if args.set_model:
-                    configure_remote_model()
-            else:
-                run_remote_parser.print_help()
+            match args.run_remote_command_name:
+                case "translate":
+                    run_remote_command(args.source_lang, args.target_lang, args.query)
+                case "config":
+                    if not (
+                        args.set_provider is not None or args.set_api_key or args.set_model
+                    ):
+                        run_remote_parser.print_help()
+                    if args.set_provider is not None:
+                        configure_remote_provider(args.set_provider)
+                    if args.set_api_key:
+                        configure_remote_api_key()
+                    if args.set_model:
+                        configure_remote_model()
+                case _:
+                    run_remote_parser.print_help()
 
         case _:
             parser.print_help()
