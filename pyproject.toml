@@ -1,5 +1,5 @@
 [project]
-name = "language-translator-cli"
+name = "py-polyglot"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -16,4 +16,4 @@ dependencies = [
 ]
 
 [project.scripts]
-translate = "cli.main:main"
+py-polyglot = "cli.main:main"

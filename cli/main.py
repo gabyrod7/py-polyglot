@@ -7,7 +7,7 @@ load_config_file()
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="Language Translator", description="", epilog=""
+        prog="py-polyglot", description="", epilog=""
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
