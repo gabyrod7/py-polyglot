@@ -1,5 +1,9 @@
 import os
+import keyring
+from keyring.errors import KeyringError, NoKeyringError
 from dotenv import load_dotenv, set_key
+
+SERVICE_NAME = "py-polyglot"
 
 
 def get_config_dir() -> str:
@@ -9,12 +13,33 @@ def get_config_dir() -> str:
         config_home = os.environ["XDG_CONFIG_HOME"]
     else:
         config_home = os.path.join(os.environ["HOME"], ".config")
-    return os.path.join(config_home, "translate")
+    return os.path.join(config_home, "py-polyglot")
 
 
 def get_config_path() -> str:
     config_home = get_config_dir()
     return os.path.join(config_home, "config.env")
+
+
+def get_secret_environment_variable(key: str) -> str | None:
+    value = os.environ.get(key)
+    if value:
+        return value
+
+    try:
+        return keyring.get_password(SERVICE_NAME, key)
+    except (KeyringError, NoKeyringError) as e:
+        raise RuntimeError(
+            f"Could not read {key} from the system keyring."
+            "You can set it as an environment variable instead."
+        ) from e
+
+
+def save_secret_environment_variable(key: str, value: str) -> None:
+    try:
+        keyring.set_password(SERVICE_NAME, key, value)
+    except (KeyringError, NoKeyringError) as e:
+        raise RuntimeError(f"Could not save {key} to the system keyring.") from e
 
 
 def load_config_file() -> bool:

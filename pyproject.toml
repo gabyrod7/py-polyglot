@@ -8,6 +8,7 @@ dependencies = [
     "anthropic>=0.102.0",
     "dotenv>=0.9.9",
     "google-genai>=2.2.0",
+    "keyring>=25.7.0",
     "openai>=2.36.0",
     "sacremoses>=0.1.1",
     "sentencepiece>=0.2.1",
@@ -18,6 +19,11 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.20",
+]
 
 [project.scripts]
 py-polyglot = "cli.main:main"

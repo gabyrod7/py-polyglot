@@ -6,9 +6,7 @@ load_config_file()
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        prog="py-polyglot", description="", epilog=""
-    )
+    parser = argparse.ArgumentParser(prog="py-polyglot", description="", epilog="")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     run_local_parser = subparsers.add_parser(
@@ -133,7 +131,9 @@ def main():
                     run_remote_command(args.source_lang, args.target_lang, args.query)
                 case "config":
                     if not (
-                        args.set_provider is not None or args.set_api_key or args.set_model
+                        args.set_provider is not None
+                        or args.set_api_key
+                        or args.set_model
                     ):
                         run_remote_parser.print_help()
                     if args.set_provider is not None:
