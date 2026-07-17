@@ -55,10 +55,10 @@ def get_setting(key: str) -> str | None:
         try:
             return keyring.get_password(SERVICE_NAME, key)
         except (KeyringError, NoKeyringError) as e:
-            raise RuntimeError(
-                f"Could not read {key} from the system keyring. "
-                "You can set it as an environment variable instead."
-            ) from e
+            print(
+                f"Warning: could not get {key} to the system keyring. "
+                f"You can save it in {get_config_file_path()} but this is not secure."
+            )
 
     return None
 
@@ -186,6 +186,7 @@ def set_provider(provider: str) -> None:
             provider = input("Enter provider: ")
 
     save_setting("PROVIDER", provider)
+    print(f"PROVIDER set to {provider}")
 
 def set_api_key() -> None:
     provider = get_setting(key="PROVIDER")
@@ -199,6 +200,7 @@ def set_api_key() -> None:
     api_key = getpass.getpass(f"Enter API key or token for {provider}: ").strip()
 #    remote_api_key = getpass.getpass(f"Enter API key for {remote_provider}: ").strip()
     save_setting(key=PROVIDER_SPECS[provider]["api_key_env"], value=api_key)
+    print(f"Save API for provider {provider}")
 
 
 #def list_local_models() -> None:
