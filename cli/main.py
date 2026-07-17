@@ -27,11 +27,6 @@ def main():
         default=None,
         help="Model name to use for local translations",
     )
-    #config_parser.add_argument(
-    #    "--set_hf_token",
-    #    action="store_true",
-    #    help="Set HuggingFace token",
-    #)
     config_parser.add_argument(
         "--set_provider",
         nargs="?",
@@ -45,11 +40,6 @@ def main():
         action="store_true",
         help="Set remote provider API key",
     )
-    #config_parser.add_argument(
-    #    "--set_model",
-    #    action="store_true",
-    #    help="Choose a remote model from the given list.",
-    #)
     config_parser.add_argument(
         "--print_config_file_path",
         action="store_true",
@@ -60,8 +50,6 @@ def main():
 
     match args.command:
         case "translate":
-            #from .run_local import run_local_command
-            #run_local_command(args.query, args.verbose)
             from .translate import run_translate_command
             run_translate_command(args.query, args.verbose)
 
@@ -72,13 +60,6 @@ def main():
                 set_model_name,
                 set_provider,
                 set_api_key,
-
-                #configure_hf_token,
-                #configure_local_model,
-                #configure_remote_api_key,
-                #configure_remote_model,
-                #configure_remote_provider,
-                #list_local_models,
             )
 
             config_args_used = any(
@@ -94,16 +75,10 @@ def main():
                 list_models()
             if args.set_model_name is not None:
                 set_model_name(model_name=args.set_model_name)
-            #if args.set_hf_token:
-            #    configure_hf_token()
             if args.set_provider is not None:
                 set_provider(args.set_provider)
-                #configure_remote_provider(args.set_provider)
             if args.set_api_key:
                 set_api_key()
-                #configure_remote_api_key()
-            #if args.set_model:
-            #    configure_remote_model()
             if args.print_config_file_path:
                 print(get_config_file_path())
 

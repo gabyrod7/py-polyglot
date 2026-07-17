@@ -198,53 +198,8 @@ def set_api_key() -> None:
             provider = input("Enter provider: ")
 
     api_key = getpass.getpass(f"Enter API key or token for {provider}: ").strip()
-#    remote_api_key = getpass.getpass(f"Enter API key for {remote_provider}: ").strip()
     save_setting(key=PROVIDER_SPECS[provider]["api_key_env"], value=api_key)
     print(f"Save API for provider {provider}")
-
-
-#def list_local_models() -> None:
-#    from huggingface_hub import list_models as list_huggingface_models
-#
-#    model_list = list_huggingface_models(author="Helsinki-NLP")
-#
-#    for model in model_list:
-#        if "opus-mt_tiny" in model.id:
-#            print(model.id)
-
-
-#def configure_local_model(model_name: str) -> None:
-#    from huggingface_hub import list_models as list_huggingface_models
-#
-#    if not model_name:
-#        model_name = input("Enter model name: ")
-#
-#    if "opus-mt_tiny" not in model_name:
-#        raise ValueError(
-#            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'run_local config --list_model_names' flag to find all supported models."
-#        )
-#
-#    model_found = False
-#    for model in list_huggingface_models(author="Helsinki-NLP"):
-#        if model_name == model.id:
-#            model_found = True
-#            break
-#
-#    if not model_found:
-#        raise ValueError(f"The model {model_name} could not be found.")
-#
-#    save_setting(key="MODEL_NAME", value=model_name)
-#    print(f"Default model set to {model_name}")
-#
-#
-#def configure_hf_token() -> None:
-#    token = getpass.getpass("Enter HuggingFace token: ").strip()
-#
-#    if not token:
-#        raise ValueError("The HuggingFace token cannot be empty or only white spaces.")
-#
-#    save_setting(key="HF_TOKEN", value=token)
-#    print("HuggingFace token has been set.")
 
 
 def configure_remote_provider(remote_provider: str) -> None:
@@ -264,36 +219,6 @@ def configure_remote_provider(remote_provider: str) -> None:
 
     save_setting(key="LLM_PROVIDER", value=remote_provider)
     print(f"LLM_PROVIDER set to {remote_provider}")
-
-
-
-#def configure_remote_api_key() -> None:
-#    remote_provider = get_configured_remote_provider()
-#
-#    api_key_env = PROVIDER_SPECS[remote_provider]["api_key_env"]
-#    try:
-#        remote_api_key = get_setting(api_key_env)
-#    except RuntimeError:
-#        remote_api_key = None
-#
-#    if remote_api_key:
-#        print(f"Configuring API key for {remote_provider}")
-#        print(f"The environment variable {api_key_env} already has a value.")
-#        print(
-#            "Confirm you want to change it by entering 1. Anything else will skip configuring the API key."
-#        )
-#        flag = input("Enter: ").strip()
-#
-#        if flag != "1":
-#            return
-#
-#    remote_api_key = getpass.getpass(f"Enter API key for {remote_provider}: ").strip()
-#
-#    if not remote_api_key:
-#        raise ValueError("API key cannot be empty or only white spaces.")
-#
-#    save_setting(key=api_key_env, value=remote_api_key)
-#    print(f"{api_key_env} has been set.")
 
 
 def configure_remote_model() -> None:
@@ -365,14 +290,3 @@ def configure_remote_model() -> None:
     save_setting(key=model_env, value=remote_model_name)
     print(f"{model_env} has been set to {remote_model_name}")
 
-
-#def get_configured_remote_provider() -> str:
-#    supported_providers = tuple(PROVIDER_SPECS.keys())
-#    remote_provider = get_setting("LLM_PROVIDER")
-#
-#    if remote_provider not in supported_providers:
-#        raise ValueError(
-#            f"The remote provider '{remote_provider}' is not supported. Use `run_remote config --set_provider` to configure one of: {', '.join(supported_providers)}"
-#        )
-#
-#    return remote_provider
