@@ -10,12 +10,10 @@ PROVIDER_SPECS: dict[str, dict[str, str]] = {
     "openai": {"model_env": "OPENAI_MODEL", "api_key_env": "OPENAI_API_KEY"},
     "anthropic": {"model_env": "ANTHROPIC_MODEL", "api_key_env": "ANTHROPIC_API_KEY"},
     "gemini": {"model_env": "GEMINI_MODEL", "api_key_env": "GEMINI_API_KEY"},
-    "HuggingFace": {"model_env": "HF_MODEL", "api_key_env": "HF_TOKEN"},
+    "huggingface": {"model_env": "HF_MODEL", "api_key_env": "HF_TOKEN"},
 }
 SETTINGS_SPEC: dict[str, dict[str, bool]] = {
     "HF_MODEL": {"secret": False},
-    #"MODEL_NAME": {"secret": False},
-    "LLM_PROVIDER": {"secret": False},
     "PROVIDER": {"secret": False},
     "OPENAI_MODEL": {"secret": False},
     "ANTHROPIC_MODEL": {"secret": False},
@@ -86,24 +84,24 @@ def save_setting(key: str, value: str) -> None:
     os.environ[key] = value
 
 
-def get_api_key_for_provider(provider: str | None) -> str:
+def get_api_key_for_provider(provider: str) -> str:
     return get_setting(PROVIDER_SPECS[provider]["api_key_env"])
 
 
 def list_models() -> None:
     provider = get_setting("PROVIDER")
-    api_key = get_api_key_for_provider(provider)
-
-    if provider not in ["HuggingFace", "openai", "anthropic", "gemini"]:
+    if provider not in PROVIDER_SPECS:
         raise NotImplementedError(
             f"Model configuration for provider {provider} is not implemented."
         )
 
-    match provider:
-        case "HuggingFace":
-            from huggingface_hub import list_models
+    api_key = get_api_key_for_provider(provider)
 
-            model_list = list_models(author="Helsinki-NLP")
+    match provider:
+        case "huggingface":
+            from huggingface_hub import list_models as list_huggingface_models
+
+            model_list = list_huggingface_models(author="Helsinki-NLP")
             for model in model_list:
                 print(model.id)
 
@@ -150,15 +148,15 @@ def list_models() -> None:
 
 def set_model_name(model_name: str) -> None:
     provider = get_setting("PROVIDER")
-    api_key = get_api_key_for_provider(provider)
-
-    if provider not in ["HuggingFace", "openai", "anthropic", "gemini"]:
+    if provider not in PROVIDER_SPECS:
         raise NotImplementedError(
             f"Model configuration for provider {provider} is not implemented."
         )
 
+    api_key = get_api_key_for_provider(provider)
+
     match provider:
-        case "HuggingFace":
+        case "huggingface":
             from huggingface_hub import list_models
 
             if not model_name:
@@ -385,13 +383,13 @@ def configure_remote_model() -> None:
     print(f"{model_env} has been set to {remote_model_name}")
 
 
-def get_configured_remote_provider() -> str:
-    supported_providers = tuple(PROVIDER_SPECS.keys())
-    remote_provider = get_setting("LLM_PROVIDER")
-
-    if remote_provider not in supported_providers:
-        raise ValueError(
-            f"The remote provider '{remote_provider}' is not supported. Use `run_remote config --set_provider` to configure one of: {', '.join(supported_providers)}"
-        )
-
-    return remote_provider
+#def get_configured_remote_provider() -> str:
+#    supported_providers = tuple(PROVIDER_SPECS.keys())
+#    remote_provider = get_setting("LLM_PROVIDER")
+#
+#    if remote_provider not in supported_providers:
+#        raise ValueError(
+#            f"The remote provider '{remote_provider}' is not supported. Use `run_remote config --set_provider` to configure one of: {', '.join(supported_providers)}"
+#        )
+#
+#    return remote_provider
