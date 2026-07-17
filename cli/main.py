@@ -60,9 +60,10 @@ def main():
 
     match args.command:
         case "translate":
-            from .run_local import run_local_command
-
-            run_local_command(args.query, args.verbose)
+            #from .run_local import run_local_command
+            #run_local_command(args.query, args.verbose)
+            from .translate import run_translate_command
+            run_translate_command(args.query, args.verbose)
 
         case "config":
             from .config import (
@@ -75,7 +76,7 @@ def main():
                 #configure_hf_token,
                 #configure_local_model,
                 #configure_remote_api_key,
-                configure_remote_model,
+                #configure_remote_model,
                 #configure_remote_provider,
                 #list_local_models,
             )
