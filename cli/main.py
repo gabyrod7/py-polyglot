@@ -12,6 +12,18 @@ def main():
     translate_parser = subparsers.add_parser("translate", help="Translate text")
     translate_parser.add_argument("query", type=str, help="Word or phrase to translate")
     translate_parser.add_argument("--verbose", action="store_false", help="")
+    translate_parser.add_argument(
+        "--source_language",
+        type=str,
+        default="",
+        help="Source language to translate from",
+    )
+    translate_parser.add_argument(
+        "--target_language",
+        type=str,
+        default="",
+        help="Target language to translate to",
+    )
 
     config_parser = subparsers.add_parser(
         "config", help="Configure translation settings"
@@ -70,7 +82,12 @@ def main():
         case "translate":
             from .translate import run_translate_command
 
-            run_translate_command(args.query, args.verbose)
+            run_translate_command(
+                args.query,
+                args.verbose,
+                args.source_language,
+                args.target_language,
+            )
 
         case "config":
             from .config import (

@@ -1,23 +1,33 @@
 from cli.config import PROVIDER_SPECS, get_setting
 
 
-# TODO: Source and target languages are not wired into this command yet.
-SOURCE_LANG = "English"
-TARGET_LANG = "German"
-
-
-def run_translate_command(query: str, verbose: bool) -> None:
+def run_translate_command(
+    query: str,
+    verbose: bool,
+    source_language: str = "",
+    target_language: str = "",
+) -> None:
     provider = get_setting("PROVIDER")
+
+    if source_language == "":
+        source_language = (
+            get_setting("SOURCE_LANGUAGE") or input("Enter source language: ").strip()
+        )
+
+    if target_language == "":
+        target_language = (
+            get_setting("TARGET_LANGUAGE") or input("Enter target language: ").strip()
+        )
 
     match provider:
         case "huggingface":
             run_huggingface_model(query, verbose)
         case "openai":
-            run_openai_model(query, verbose)
+            run_openai_model(query, verbose, source_language, target_language)
         case "anthropic":
-            run_anthropic_model(query, verbose)
+            run_anthropic_model(query, verbose, source_language, target_language)
         case "gemini":
-            run_gemini_model(query, verbose)
+            run_gemini_model(query, verbose, source_language, target_language)
         case _:
             raise ValueError(f"The provider {provider} is not supported.")
 
@@ -41,17 +51,17 @@ def get_remote_model_settings(provider: str) -> tuple[str, str]:
 def run_openai_model(
     query: str,
     verbose: bool,
+    source_language: str,
+    target_language: str,
     model_name: str | None = None,
     api_key: str | None = None,
-    source_lang: str = SOURCE_LANG,
-    target_lang: str = TARGET_LANG,
 ) -> None:
     if model_name is None or api_key is None:
         model_name, api_key = get_remote_model_settings("openai")
 
     if verbose:
         print(
-            f"Requesting translation from {source_lang} to {target_lang} "
+            f"Requesting translation from {source_language} to {target_language} "
             "from OpenAI for the following text:"
         )
         print(query)
@@ -65,7 +75,7 @@ def run_openai_model(
         response: Response = client.responses.create(
             model=model_name,
             instructions=(
-                f"You are a {source_lang} to {target_lang} translator. "
+                f"You are a {source_language} to {target_language} translator. "
                 "Provide only the tranlation of the given text."
             ),
             input=query,
@@ -207,17 +217,17 @@ def print_openai_error(title: str, e: Exception) -> None:
 def run_anthropic_model(
     query: str,
     verbose: bool,
+    source_language: str,
+    target_language: str,
     model_name: str | None = None,
     api_key: str | None = None,
-    source_lang: str = SOURCE_LANG,
-    target_lang: str = TARGET_LANG,
 ) -> None:
     if model_name is None or api_key is None:
         model_name, api_key = get_remote_model_settings("anthropic")
 
     if verbose:
         print(
-            f"Requesting translation from {source_lang} to {target_lang} "
+            f"Requesting translation from {source_language} to {target_language} "
             "from Anthropic for the following text:"
         )
         print(query)
@@ -234,7 +244,7 @@ def run_anthropic_model(
                 {
                     "role": "assistant",
                     "content": (
-                        f"I am a {source_lang} to {target_lang} translator and "
+                        f"I am a {source_language} to {target_language} translator and "
                         "will only translate whatever word, phrase, sentence or "
                         "sentences the user requests."
                     ),
@@ -364,17 +374,17 @@ def print_anthropic_error(title: str, e: Exception) -> None:
 def run_gemini_model(
     query: str,
     verbose: bool,
+    source_language: str,
+    target_language: str,
     model_name: str | None = None,
     api_key: str | None = None,
-    source_lang: str = SOURCE_LANG,
-    target_lang: str = TARGET_LANG,
 ) -> None:
     if model_name is None or api_key is None:
         model_name, api_key = get_remote_model_settings("gemini")
 
     if verbose:
         print(
-            f"Requesting translation from {source_lang} to {target_lang} "
+            f"Requesting translation from {source_language} to {target_language} "
             "from Gemini for the following text:"
         )
         print(query)
@@ -389,7 +399,7 @@ def run_gemini_model(
             model=model_name,
             config=genai.types.GenerateContentConfig(
                 system_instruction=(
-                    f"You are a {source_lang} to {target_lang} translator. "
+                    f"You are a {source_language} to {target_language} translator. "
                     "Provide only the tranlation of the given text."
                 )
             ),
@@ -489,7 +499,10 @@ def print_gemini_error(title: str, e: Exception) -> None:
         print(f"Response: {response}")
 
 
-def run_huggingface_model(query: str, verbose: bool) -> None:
+def run_huggingface_model(
+    query: str,
+    verbose: bool,
+) -> None:
     from transformers import MarianMTModel, MarianTokenizer
 
     hf_token = get_setting("HF_TOKEN")
