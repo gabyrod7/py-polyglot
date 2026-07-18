@@ -2,11 +2,11 @@
 
 [![CI](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml/badge.svg)](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml)
 
-A Python command-line tool to translate words, phrases, and sentences from one language to another using either a local model from Hugging Face or a remote LLM provider.
+A Python command-line tool to translate words, phrases, and sentences using either a local Hugging Face model or a remote LLM provider.
 
 The CLI currently supports:
 
-- Local translation with Helsinki-NLP `opus-mt_tiny` models
+- Local translation with Helsinki-NLP `opus-mt_tiny` models through Hugging Face
 - Remote translation with OpenAI, Anthropic, or Gemini
 
 ## Requirements
@@ -47,47 +47,104 @@ You can also install it with pip:
 python -m pip install .
 ```
 
-## Local Translation
+## Quick Start
 
-Local translation uses Hugging Face models from Helsinki-NLP. Only models whose names contain `opus-mt_tiny` are supported. Before translating a word, phrase, or sentence, you must choose a model with `run_local config`:
+Choose a provider:
 
 ```bash
-uv run py-polyglot run_local config --list_model_names
-uv run py-polyglot run_local config --set_model_name Helsinki-NLP/opus-mt_tiny-en-es
+uv run py-polyglot config --set_provider openai
 ```
 
-The optional `--list_model_names` flag prints the available local models. The `--set_model_name` flag saves the model name in the local configuration file. If no model name is provided, the CLI will prompt you for one.
+Set the model and API key/token for that provider:
 
-Each local model is trained for a specific source and target language pair. That information is encoded at the end of the model name. In the example above, the model name ends with `en-es`, so the model translates from English to Spanish. Each config flag is discussed in more detail in the [Configuration](#configuration) section.
+```bash
+uv run py-polyglot config --set_model_name gpt-4.1-mini
+uv run py-polyglot config --set_api_key
+```
+
+Set default languages:
+
+```bash
+uv run py-polyglot config --set_source_language English
+uv run py-polyglot config --set_target_language Spanish
+```
+
+Translate text:
+
+```bash
+uv run py-polyglot translate "hello"
+```
+
+You can also provide languages per translation:
+
+```bash
+uv run py-polyglot translate "hello" --source_language English --target_language Spanish
+```
+
+If source or target language is not provided on the command line, `translate` checks the saved `SOURCE_LANGUAGE` and `TARGET_LANGUAGE` settings. If either setting is missing, the CLI prompts for it.
+
+## Local Translation
+
+Local translation uses Hugging Face models from Helsinki-NLP. Only models whose names contain `opus-mt_tiny` are supported.
+
+Configure Hugging Face as the provider:
+
+```bash
+uv run py-polyglot config --set_provider huggingface
+```
+
+List available local models:
+
+```bash
+uv run py-polyglot config --list_model_names
+```
+
+Set a local model:
+
+```bash
+uv run py-polyglot config --set_model_name Helsinki-NLP/opus-mt_tiny-en-es
+```
+
+Each local model is trained for a specific source and target language pair. That information is encoded at the end of the model name. In the example above, the model name ends with `en-es`, so the model translates from English to Spanish.
 
 Translate text locally:
 
 ```bash
-uv run py-polyglot run_local translate "hello"
+uv run py-polyglot translate "hello"
 ```
 
 ## Remote Translation
 
 Remote translation uses one of the supported LLM providers: `openai`, `anthropic`, or `gemini`.
 
-Set the remote provider. If no provider is given, the CLI will prompt you for one:
+Configure a remote provider:
 
 ```bash
-uv run py-polyglot run_remote config --set_provider openai
+uv run py-polyglot config --set_provider openai
 ```
 
-Set the API key and a model for the configured provider:
+Set the API key for the configured provider:
 
 ```bash
-uv run py-polyglot run_remote config --set_api_key --set_model
+uv run py-polyglot config --set_api_key
 ```
 
-A list of available models will be printed to screen and the user will be requested to input a model name. If a model has already been set, the CLI will ask if the user wants to update the model. 
+List available models:
+
+```bash
+uv run py-polyglot config --list_model_names
+```
+
+Set the model:
+
+```bash
+uv run py-polyglot config --set_model_name gpt-4.1-mini
+```
 
 Translate text remotely:
 
 ```bash
-uv run py-polyglot run_remote translate "English" "Spanish" "hello"
+uv run py-polyglot translate "hello" --source_language English --target_language Spanish
 ```
 
 ## Configuration
@@ -98,26 +155,39 @@ Non-secret settings are written to `config.env` under the user's config director
 
 Secrets are stored with the service name `py-polyglot` in the system keyring. Environment variables with the same names can still be used and take precedence over keyring values.
 
-Local configuration flags:
+Print the config file path:
 
-- `run_local config --list_model_names` prints the supported Helsinki-NLP local models.
-- `run_local config --set_model_name [MODEL_NAME]` stores the local model used by `run_local translate`. If `MODEL_NAME` is omitted, the CLI prompts for it.
-- `run_local config --set_hf_token` prompts for the Hugging Face token and stores it in the system keyring.
+```bash
+uv run py-polyglot config --print_config_file_path
+```
 
-Remote configuration flags:
+Configuration flags:
 
-- `run_remote config --set_provider [PROVIDER]` stores the remote provider. Supported providers are `openai`, `anthropic`, and `gemini`. If `PROVIDER` is omitted, the CLI prompts for it.
-- `run_remote config --set_api_key` prompts for the API key for the configured remote provider and stores it in the system keyring.
-- `run_remote config --set_model` lists the available models for the configured remote provider and stores the selected model.
+- `config --set_provider [PROVIDER]` stores the provider. Supported providers are `huggingface`, `openai`, `anthropic`, and `gemini`. If `PROVIDER` is omitted or unsupported, the CLI prompts for it.
+- `config --list_model_names` prints models available for the configured provider.
+- `config --set_model_name [MODEL_NAME]` stores the model used by `translate`. If `MODEL_NAME` is omitted, the CLI prompts for it.
+- `config --set_api_key` prompts for the API key/token for the configured provider and stores it in the system keyring when possible.
+- `config --set_source_language [LANGUAGE]` stores the default source language as `SOURCE_LANGUAGE`. If `LANGUAGE` is omitted, the CLI prompts for it.
+- `config --set_target_language [LANGUAGE]` stores the default target language as `TARGET_LANGUAGE`. If `LANGUAGE` is omitted, the CLI prompts for it.
+- `config --print_config_file_path` prints the path to the config file.
+
+Translate flags:
+
+- `translate QUERY` translates the provided text.
+- `translate QUERY --source_language LANGUAGE` sets the source language for that translation.
+- `translate QUERY --target_language LANGUAGE` sets the target language for that translation.
+- `translate QUERY --verbose` controls extra output/progress behavior.
 
 Non-secret settings:
 
 ```env
-MODEL_NAME
-LLM_PROVIDER
+PROVIDER
+HF_MODEL
 OPENAI_MODEL
 ANTHROPIC_MODEL
 GEMINI_MODEL
+SOURCE_LANGUAGE
+TARGET_LANGUAGE
 ```
 
 Secrets:
@@ -129,24 +199,19 @@ ANTHROPIC_API_KEY
 GEMINI_API_KEY
 ```
 
-Only the values for your selected provider are required. For example, if `LLM_PROVIDER` is set to `openai`, then `OPENAI_API_KEY` and `OPENAI_MODEL` must also be configured.
+Only the values for your selected provider are required. For example, if `PROVIDER` is set to `openai`, then `OPENAI_API_KEY` and `OPENAI_MODEL` must also be configured.
 
 ## Supported Providers
 
-Local provider:
-
-- Hugging Face Helsinki-NLP `opus-mt_tiny` models
-
-Remote providers:
-
+- `huggingface`
 - `openai`
 - `anthropic`
 - `gemini`
 
 ## Limitations
 
-Before running a local translation, you must configure a supported local model.
+Before translating, you must configure a provider and model.
 
-Before running a remote translation, you must configure a provider, an API key, and a model for that provider.
+For remote providers, you must also configure an API key.
 
 Local model quality, supported language pairs, and download requirements depend on the selected Hugging Face model.
