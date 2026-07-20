@@ -2,14 +2,37 @@ import argparse
 
 from .config import load_config_file
 
+ENVIRONMENT_HELP = """
+Environment variables:
+  PROVIDER                  Provider to use: huggingface, openai, anthropic, gemini.
+  SOURCE_LANGUAGE           Default source language for remote translations.
+  TARGET_LANGUAGE           Default target language for remote translations.
+  HF_MODEL                  Hugging Face model name.
+  OPENAI_MODEL              OpenAI model name.
+  ANTHROPIC_MODEL           Anthropic model name.
+  GEMINI_MODEL              Gemini model name.
+  HF_TOKEN                  Hugging Face token.
+  OPENAI_API_KEY            OpenAI API key.
+  ANTHROPIC_API_KEY         Anthropic API key.
+  GEMINI_API_KEY            Gemini API key.
+"""
+
 load_config_file()
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="py-polyglot", description="", epilog="")
+    parser = argparse.ArgumentParser(
+        prog="py-polyglot",
+        description="Translate text using Hugging Face or remote LLM providers.",
+#        epilog=ENVIRONMENT_HELP,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    translate_parser = subparsers.add_parser("translate", help="Translate text")
+    translate_parser = subparsers.add_parser(
+        "translate",
+        help="Translate text",
+    )
     translate_parser.add_argument("query", type=str, help="Word or phrase to translate")
     translate_parser.add_argument("--verbose", action="store_false", help="")
     translate_parser.add_argument(
@@ -25,8 +48,15 @@ def main():
         help="Target language to translate to",
     )
 
+    subparsers.add_parser(
+        "info",
+        help="Show supported environment variables",
+        description="Show supported environment variables.",
+    )
+
     config_parser = subparsers.add_parser(
-        "config", help="Configure translation settings"
+        "config",
+        help="Configure translation settings",
     )
     config_parser.add_argument(
         "--list_model_names",
@@ -88,6 +118,9 @@ def main():
                 args.source_language,
                 args.target_language,
             )
+
+        case "info":
+            print(ENVIRONMENT_HELP.strip())
 
         case "config":
             from .config import (
