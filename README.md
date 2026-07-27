@@ -62,11 +62,10 @@ uv run py-polyglot config --set_model_name gpt-4.1-mini
 uv run py-polyglot config --set_api_key
 ```
 
-Set default languages:
+You will be prompted to enter your API key or token without echoing. Set default languages:
 
 ```bash
-uv run py-polyglot config --set_source_language English
-uv run py-polyglot config --set_target_language Spanish
+uv run py-polyglot config --set_source_language German --set_target_language Spanish
 ```
 
 Translate text:
@@ -80,8 +79,6 @@ You can also provide languages per translation:
 ```bash
 uv run py-polyglot translate "hello" --source_language English --target_language Spanish
 ```
-
-If source or target language is not provided on the command line, `translate` checks the saved `SOURCE_LANGUAGE` and `TARGET_LANGUAGE` settings. If either setting is missing, the CLI prompts for it.
 
 ## Local Translation
 
@@ -151,56 +148,22 @@ uv run py-polyglot translate "hello" --source_language English --target_language
 
 The CLI stores non-secret settings in a local config file and stores secrets in the system keyring.
 
-Non-secret settings are written to `config.env` under the user's config directory, usually `~/.config/py-polyglot/config.env` on Linux/macOS.
-
-Secrets are stored with the service name `py-polyglot` in the system keyring. Environment variables with the same names can still be used and take precedence over keyring values.
-
-Print the config file path:
+Non-secret settings are written to `config.env` under the user's config directory, usually `~/.config/py-polyglot/config.env` on Linux/macOS. The config file path can be obtained by running
 
 ```bash
 uv run py-polyglot config --print_config_file_path
 ```
-
-Configuration flags:
-
-- `config --set_provider [PROVIDER]` stores the provider. Supported providers are `huggingface`, `openai`, `anthropic`, and `gemini`. If `PROVIDER` is omitted or unsupported, the CLI prompts for it.
-- `config --list_model_names` prints models available for the configured provider.
-- `config --set_model_name [MODEL_NAME]` stores the model used by `translate`. If `MODEL_NAME` is omitted, the CLI prompts for it.
-- `config --set_api_key` prompts for the API key/token for the configured provider and stores it in the system keyring when possible.
-- `config --set_source_language [LANGUAGE]` stores the default source language as `SOURCE_LANGUAGE`. If `LANGUAGE` is omitted, the CLI prompts for it.
-- `config --set_target_language [LANGUAGE]` stores the default target language as `TARGET_LANGUAGE`. If `LANGUAGE` is omitted, the CLI prompts for it.
-- `config --print_config_file_path` prints the path to the config file.
-
-Translate flags:
-
-- `translate QUERY` translates the provided text.
-- `translate QUERY --source_language LANGUAGE` sets the source language for that translation.
-- `translate QUERY --target_language LANGUAGE` sets the target language for that translation.
-- `translate QUERY --verbose` controls extra output/progress behavior.
-
-Non-secret settings:
-
-```env
-PROVIDER
-HF_MODEL
-OPENAI_MODEL
-ANTHROPIC_MODEL
-GEMINI_MODEL
-SOURCE_LANGUAGE
-TARGET_LANGUAGE
-```
-
-Secrets:
-
-```env
-HF_TOKEN
-OPENAI_API_KEY
-ANTHROPIC_API_KEY
-GEMINI_API_KEY
-```
+Secrets are stored with the service name `py-polyglot` in the system keyring. Environment variables with the same names can still be used and take precedence over keyring values.
 
 Only the values for your selected provider are required. For example, if `PROVIDER` is set to `openai`, then `OPENAI_API_KEY` and `OPENAI_MODEL` must also be configured.
 
+## Environment variables
+
+information on all environment variables can be obtained by using the `info` flag
+
+```bash
+uv run py-polyglot info
+```
 ## Supported Providers
 
 - `huggingface`
