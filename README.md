@@ -12,6 +12,7 @@ The CLI currently supports:
 ## Requirements
 
 - Python 3.12 or newer
+- `uv` or `pip`
 - API keys for any remote provider you want to use
 - A Hugging Face token if the selected local model requires one
 
@@ -65,7 +66,7 @@ uv run py-polyglot config --set_api_key
 You will be prompted to enter your API key or token without echoing. Set default languages:
 
 ```bash
-uv run py-polyglot config --set_source_language German --set_target_language Spanish
+uv run py-polyglot config --set_source_language English --set_target_language Spanish
 ```
 
 Translate text:
@@ -90,7 +91,7 @@ Configure Hugging Face as the provider:
 uv run py-polyglot config --set_provider huggingface
 ```
 
-List available local models:
+List Hugging Face models for the configured provider, then choose an `opus-mt_tiny` model:
 
 ```bash
 uv run py-polyglot config --list_model_names
@@ -102,14 +103,13 @@ Set a local model:
 uv run py-polyglot config --set_model_name Helsinki-NLP/opus-mt_tiny-en-es
 ```
 
-Each local model is trained for a specific source and target language pair. That information is encoded at the end of the model name. In the example above, the model name ends with `en-es`, so the model translates from English to Spanish.
+Each local model is trained for a specific source and target language pair. That information is encoded at the end of the model name. In the example above, the model name ends with `en-es`, so the model translates from English to Spanish. For Hugging Face translations, the model determines the language pair.
 
 Translate text locally:
 
 ```bash
 uv run py-polyglot translate "hello"
 ```
-
 ## Remote Translation
 
 Remote translation uses one of the supported LLM providers: `openai`, `anthropic`, or `gemini`.
@@ -148,22 +148,24 @@ uv run py-polyglot translate "hello" --source_language English --target_language
 
 The CLI stores non-secret settings in a local config file and stores secrets in the system keyring.
 
-Non-secret settings are written to `config.env` under the user's config directory, usually `~/.config/py-polyglot/config.env` on Linux/macOS. The config file path can be obtained by running
+Non-secret settings are written to `config.env` under the user's config directory, usually `~/.config/py-polyglot/config.env` on Linux/macOS. The config file path can be obtained by running:
 
 ```bash
 uv run py-polyglot config --print_config_file_path
 ```
-Secrets are stored with the service name `py-polyglot` in the system keyring. Environment variables with the same names can still be used and take precedence over keyring values.
+
+Secrets are stored with the service name `py-polyglot` in the system keyring. Environment variables with the same names can still be used and take precedence over config file and keyring values.
 
 Only the values for your selected provider are required. For example, if `PROVIDER` is set to `openai`, then `OPENAI_API_KEY` and `OPENAI_MODEL` must also be configured.
 
 ## Environment variables
 
-information on all environment variables can be obtained by using the `info` flag
+Information on all supported environment variables can be obtained by using the `info` command:
 
 ```bash
 uv run py-polyglot info
 ```
+
 ## Supported Providers
 
 - `huggingface`
