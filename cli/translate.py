@@ -81,10 +81,14 @@ def run_openai_model(
             input=query,
         )
     except openai.APITimeoutError as e:
-        print_openai_error(title="OpenAI request timed out.", e=e)
+        print_openai_error(
+            title="OpenAI request timed out.", e=e, error_kind="timeout"
+        )
         raise SystemExit(1) from e
     except openai.APIConnectionError as e:
-        print_openai_error(title="Could not connect to OpenAI.", e=e)
+        print_openai_error(
+            title="Could not connect to OpenAI.", e=e, error_kind="connection"
+        )
         raise SystemExit(2) from e
     except openai.APIError as e:
         print_openai_error(title="OpenAI API error.", e=e)
@@ -93,9 +97,7 @@ def run_openai_model(
     print(response.output_text)
 
 
-def print_openai_error(title: str, e: Exception) -> None:
-    import openai
-
+def print_openai_error(title: str, e: Exception, error_kind: str = "api") -> None:
     print(title)
 
     status_code = getattr(e, "status_code", None)
@@ -126,13 +128,13 @@ def print_openai_error(title: str, e: Exception) -> None:
     if cause:
         print(f"Technical details: {cause}")
 
-    if isinstance(e, openai.APITimeoutError):
+    if error_kind == "timeout":
         print("Likely cause: The request took too long to complete.")
         print(
             "Try this: Wait briefly and retry. If it keeps happening, check your "
             "network connection or try a smaller request."
         )
-    elif isinstance(e, openai.APIConnectionError):
+    elif error_kind == "connection":
         print("Likely cause: The request could not reach OpenAI.")
         print(
             "Try this: Check your internet connection, DNS, proxy/firewall settings, "
@@ -253,10 +255,14 @@ def run_anthropic_model(
             ],
         )
     except anthropic.APITimeoutError as e:
-        print_anthropic_error(title="Anthropic request timed out.", e=e)
+        print_anthropic_error(
+            title="Anthropic request timed out.", e=e, error_kind="timeout"
+        )
         raise SystemExit(1) from e
     except anthropic.APIConnectionError as e:
-        print_anthropic_error(title="Could not connect to Anthropic.", e=e)
+        print_anthropic_error(
+            title="Could not connect to Anthropic.", e=e, error_kind="connection"
+        )
         raise SystemExit(1) from e
     except anthropic.APIStatusError as e:
         print_anthropic_error(title="Anthropic returned an API error.", e=e)
@@ -268,9 +274,7 @@ def run_anthropic_model(
     print(message.content[0].text)
 
 
-def print_anthropic_error(title: str, e: Exception) -> None:
-    import anthropic
-
+def print_anthropic_error(title: str, e: Exception, error_kind: str = "api") -> None:
     print(title)
 
     status_code = getattr(e, "status_code", None)
@@ -297,13 +301,13 @@ def print_anthropic_error(title: str, e: Exception) -> None:
     if cause:
         print(f"Technical details: {cause}")
 
-    if isinstance(e, anthropic.APITimeoutError):
+    if error_kind == "timeout":
         print("Likely cause: The request took too long to complete.")
         print(
             "Try this: Wait briefly and retry. For long requests, reduce max tokens "
             "or consider using streaming."
         )
-    elif isinstance(e, anthropic.APIConnectionError):
+    elif error_kind == "connection":
         print("Likely cause: The request could not reach Anthropic.")
         print(
             "Try this: Check your network settings, proxy configuration, SSL "
