@@ -503,10 +503,13 @@ def run_huggingface_model(
     query: str,
     verbose: bool,
 ) -> None:
+    from torch.cuda import is_available as torch_cuda_is_available
     from transformers import MarianMTModel, MarianTokenizer
 
     hf_token = get_setting("HF_TOKEN")
     model_name = get_setting("HF_MODEL")
+
+    torch_device = "cuda" if torch_cuda_is_available() else "cpu"
 
     if not model_name:
         raise ValueError(
@@ -521,9 +524,9 @@ def run_huggingface_model(
         print(f"Using model: {model_name}")
 
     tokenizer = MarianTokenizer.from_pretrained(model_name, token=hf_token)
-    model = MarianMTModel.from_pretrained(model_name, token=hf_token)
+    model = MarianMTModel.from_pretrained(model_name, token=hf_token).to(torch_device)
 
-    inputs = tokenizer(query, return_tensors="pt", padding=True)
+    inputs = tokenizer(query, return_tensors="pt", padding=True).to(torch_device)
     translated = model.generate(**inputs)
 
     result = tokenizer.decode(translated[0], skip_special_tokens=True)

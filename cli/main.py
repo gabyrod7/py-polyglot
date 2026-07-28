@@ -126,9 +126,9 @@ def main():
             from .config import (
                 get_config_file_path,
                 list_models,
+                set_api_key,
                 set_model_name,
                 set_provider,
-                set_api_key,
                 set_source_language,
                 set_target_language,
             )
