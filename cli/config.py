@@ -2,8 +2,9 @@ import getpass
 import os
 
 import keyring
-from dotenv import load_dotenv, set_key
 from keyring.errors import KeyringError, NoKeyringError
+from dotenv import load_dotenv, set_key
+from typing import Literal
 
 SERVICE_NAME = "py-polyglot"
 PROVIDER_SPECS: dict[str, dict[str, str]] = {
@@ -193,20 +194,18 @@ def set_provider(provider: str) -> None:
     print(f"PROVIDER set to {provider}")
 
 
-def set_source_language(source_language: str) -> None:
-    if not source_language:
-        source_language = input("Enter source language: ").strip()
+def set_language(language: str, to: Literal["source", "target"]) -> None:
+    if to not in ("source", "target"):
+        print(f"`{to}` was provided but only `source` and `target` are allowed.")
+        while to not in ("source", "target"):
+            to = input("Enter source or target: ").strip()
 
-    save_setting(key="SOURCE_LANGUAGE", value=source_language)
-    print(f"SOURCE_LANGUAGE has been set to {source_language}")
+    if not language:
+        language = input("Enter language: ").strip()
 
-
-def set_target_language(target_language: str) -> None:
-    if not target_language:
-        target_language = input("Enter target language: ").strip()
-
-    save_setting(key="TARGET_LANGUAGE", value=target_language)
-    print(f"TARGET_LANGUAGE has been set to {target_language}")
+    key = f"{to.upper()}_LANGUAGE"
+    save_setting(key=key, value=language)
+    print(f"{key} has been set to {language}")
 
 
 def set_api_key() -> None:
@@ -223,4 +222,3 @@ def set_api_key() -> None:
     api_key = getpass.getpass(f"Enter API key or token for {provider}: ").strip()
     save_setting(key=PROVIDER_SPECS[provider]["api_key_env"], value=api_key)
     print(f"Save API for provider {provider}")
-
