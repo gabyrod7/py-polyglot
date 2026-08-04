@@ -127,9 +127,9 @@ def main():
                 get_config_file_path,
                 list_models,
                 set_api_key,
+                set_language,
                 set_model_name,
                 set_provider,
-                set_language,
             )
 
             config_args_used = any(

@@ -1,10 +1,10 @@
 import getpass
 import os
+from typing import Literal
 
 import keyring
-from keyring.errors import KeyringError, NoKeyringError
 from dotenv import load_dotenv, set_key
-from typing import Literal
+from keyring.errors import KeyringError, NoKeyringError
 
 SERVICE_NAME = "py-polyglot"
 PROVIDER_SPECS: dict[str, dict[str, str]] = {
