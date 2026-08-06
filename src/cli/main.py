@@ -1,6 +1,6 @@
 import argparse
 
-from .config import load_config_file
+from core.config import load_config_file
 
 ENVIRONMENT_HELP = """
 Environment variables:
@@ -114,7 +114,7 @@ def main():
 
     match args.command:
         case "translate":
-            from .translate import run_translate_command
+            from core.translate import run_translate_command
 
             run_translate_command(
                 args.query,
@@ -127,7 +127,7 @@ def main():
             print(ENVIRONMENT_HELP.strip())
 
         case "config":
-            from .config import (
+            from core.config import (
                 get_config_file_path,
                 list_models,
                 set_api_key,

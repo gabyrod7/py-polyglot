@@ -10,6 +10,7 @@ dependencies = [
     "google-genai>=2.2.0",
     "keyring>=25.7.0",
     "openai>=2.36.0",
+    "pyside6>=6.11.1",
     "sacremoses>=0.1.1",
     "sentencepiece>=0.2.1",
     "torch>=2.11.0",
@@ -27,3 +28,7 @@ dev = [
 
 [project.scripts]
 py-polyglot = "cli.main:main"
+py-polyglot-gui = "gui.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

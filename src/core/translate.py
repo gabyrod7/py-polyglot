@@ -1,4 +1,4 @@
-from cli.config import PROVIDER_SPECS, get_setting
+from core.config import PROVIDER_SPECS, get_setting
 
 
 def run_translate_command(
