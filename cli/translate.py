@@ -21,7 +21,7 @@ def run_translate_command(
 
     match provider:
         case "huggingface":
-            run_huggingface_model(query, verbose)
+            run_huggingface_model(query, verbose, source_language, target_language)
         case "openai":
             run_openai_model(query, verbose, source_language, target_language)
         case "anthropic":
@@ -506,6 +506,8 @@ def print_gemini_error(title: str, e: Exception) -> None:
 def run_huggingface_model(
     query: str,
     verbose: bool,
+    source_language: str,
+    target_language: str,
 ) -> None:
     from torch.cuda import is_available as torch_cuda_is_available
     from transformers import MarianMTModel, MarianTokenizer
@@ -519,6 +521,10 @@ def run_huggingface_model(
         raise ValueError(
             "No model has been chosen. Use `config --set_model_name` options to set a model."
         )
+
+    if source_language != "German":
+        model_name = "Helsinki-NLP/opus-mt_tiny_eng-deu"
+        print(f"Changed model name to {model_name}")
 
     if verbose:
         from transformers.utils import logging

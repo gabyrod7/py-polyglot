@@ -36,13 +36,17 @@ def main():
     translate_parser.add_argument("query", type=str, help="Word or phrase to translate")
     translate_parser.add_argument("--verbose", action="store_false", help="")
     translate_parser.add_argument(
+        "-s",
         "--source_language",
+        dest="source_language",
         type=str,
         default="",
         help="Source language to translate from",
     )
     translate_parser.add_argument(
+        "-t",
         "--target_language",
+        dest="target_language",
         type=str,
         default="",
         help="Target language to translate to",
