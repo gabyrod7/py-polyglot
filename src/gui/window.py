@@ -60,6 +60,7 @@ class Widget(QWidget):
         self.new = QPushButton("New (Ctrl-N)")
         self.save = QPushButton("Save (Ctrl-S)")
         self.delete = QPushButton("Delete")
+        self.delete.setEnabled(False)
         self.right.addWidget(self.translate)
 
         self.buttons_row = QHBoxLayout()
@@ -73,7 +74,7 @@ class Widget(QWidget):
         self.notes_tree.currentItemChanged.connect(self.select_entry)
         self.notes_tree.itemExpanded.connect(self.load_directory_children)
         self.save.clicked.connect(self.save_note)
-        self.delete.clicked.connect(self.delete_note)
+        #self.delete.clicked.connect(self.delete_note)
 
         self.main = QHBoxLayout()
         self.main.addLayout(self.left, 3)
@@ -279,7 +280,7 @@ class MainWindow(QtWidgets.QMainWindow):
         quit_action = self.file_menu.addAction("Quit", self.close)
         quit_action.setShortcut("Ctrl+Q")
 
-        self.edit_menu.addAction("Delete", widget.delete_note)
+        #self.edit_menu.addAction("Delete", widget.delete_note)
 
         translate_action = self.tool_menu.addAction("Translate", widget.translate_text)
         translate_action.setShortcut("Ctrl+T")
