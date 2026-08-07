@@ -223,4 +223,3 @@ def set_api_key() -> None:
     api_key = getpass.getpass(f"Enter API key or token for {provider}: ").strip()
     save_setting(key=PROVIDER_SPECS[provider]["api_key_env"], value=api_key)
     print(f"Save API for provider {provider}")
-

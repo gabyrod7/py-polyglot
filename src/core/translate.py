@@ -81,9 +81,7 @@ def run_openai_model(
             input=query,
         )
     except openai.APITimeoutError as e:
-        print_openai_error(
-            title="OpenAI request timed out.", e=e, error_kind="timeout"
-        )
+        print_openai_error(title="OpenAI request timed out.", e=e, error_kind="timeout")
         raise SystemExit(1) from e
     except openai.APIConnectionError as e:
         print_openai_error(

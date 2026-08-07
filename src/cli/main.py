@@ -24,7 +24,7 @@ def main():
     parser = argparse.ArgumentParser(
         prog="py-polyglot",
         description="Translate text using Hugging Face or remote LLM providers.",
-#        epilog=ENVIRONMENT_HELP,
+        #        epilog=ENVIRONMENT_HELP,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

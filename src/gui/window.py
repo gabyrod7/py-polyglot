@@ -71,7 +71,6 @@ class Widget(QWidget):
         self.translate.clicked.connect(self.translate_text)
         self.new.clicked.connect(self.new_note)
         self.notes_tree.currentItemChanged.connect(self.select_entry)
-        self.notes_tree.itemClicked.connect(self.load_directory_on_click)
         self.notes_tree.itemExpanded.connect(self.load_directory_children)
         self.save.clicked.connect(self.save_note)
         self.delete.clicked.connect(self.delete_note)
@@ -90,7 +89,9 @@ class Widget(QWidget):
         root_entry = DirectoryEntry(directory, is_dir=True)
         root_item = QTreeWidgetItem([directory.name or str(directory)])
         root_item.setData(0, Qt.ItemDataRole.UserRole, root_entry)
-        root_item.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator)
+        root_item.setChildIndicatorPolicy(
+            QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
+        )
 
         self.notes_tree.addTopLevelItem(root_item)
         self.load_directory_children(root_item)
@@ -105,7 +106,8 @@ class Widget(QWidget):
 
         try:
             paths = sorted(
-                entry.path.iterdir(), key=lambda path: (not path.is_dir(), path.name.lower())
+                entry.path.iterdir(),
+                key=lambda path: (not path.is_dir(), path.name.lower()),
             )
         except OSError:
             entry.children_loaded = True
@@ -124,10 +126,6 @@ class Widget(QWidget):
             item.addChild(child_item)
 
         entry.children_loaded = True
-
-    @Slot(QTreeWidgetItem, int)
-    def load_directory_on_click(self, item: QTreeWidgetItem, column: int):
-        self.load_directory_children(item)
 
     @Slot()
     def new_note(self):
@@ -159,7 +157,9 @@ class Widget(QWidget):
         return item.parent() or self.notes_tree.topLevelItem(0)
 
     @Slot(QTreeWidgetItem, QTreeWidgetItem)
-    def select_entry(self, current: QTreeWidgetItem | None, previous: QTreeWidgetItem | None):
+    def select_entry(
+        self, current: QTreeWidgetItem | None, previous: QTreeWidgetItem | None
+    ):
         if current is None:
             return
 
