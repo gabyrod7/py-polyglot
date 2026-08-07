@@ -133,8 +133,7 @@ def main():
                 set_api_key,
                 set_model_name,
                 set_provider,
-                set_source_language,
-                set_target_language,
+                set_language,
             )
 
             config_args_used = any(
@@ -155,9 +154,9 @@ def main():
             if args.set_api_key:
                 set_api_key()
             if args.set_source_language is not None:
-                set_source_language(args.set_source_language)
+                set_language(args.set_source_language, "source")
             if args.set_target_language is not None:
-                set_target_language(args.set_target_language)
+                set_language(args.set_target_language, "target")
             if args.print_config_file_path:
                 print(get_config_file_path())
 

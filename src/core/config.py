@@ -4,6 +4,7 @@ import os
 import keyring
 from dotenv import load_dotenv, set_key
 from keyring.errors import KeyringError, NoKeyringError
+from typing import Literal
 
 SERVICE_NAME = "py-polyglot"
 PROVIDER_SPECS: dict[str, dict[str, str]] = {
@@ -193,20 +194,16 @@ def set_provider(provider: str) -> None:
     print(f"PROVIDER set to {provider}")
 
 
-def set_source_language(source_language: str) -> None:
-    if not source_language:
-        source_language = input("Enter source language: ").strip()
+def set_language(language: str, language_type: Literal["source", "target"]) -> None:
+    if language_type not in ["source", "target"]:
+        raise Exception(
+            f"Language type is {language_type} but only 'source' and 'target' are allowed"
+        )
 
-    save_setting(key="SOURCE_LANGUAGE", value=source_language)
-    print(f"SOURCE_LANGUAGE has been set to {source_language}")
+    if not language:
+        language = input(f"Set {language_type} language: ").strip()
 
-
-def set_target_language(target_language: str) -> None:
-    if not target_language:
-        target_language = input("Enter target language: ").strip()
-
-    save_setting(key="TARGET_LANGUAGE", value=target_language)
-    print(f"TARGET_LANGUAGE has been set to {target_language}")
+    save_setting(key=f"{language_type.upper()}_LANGUAGE", value=language)
 
 
 def set_api_key() -> None:
