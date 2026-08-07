@@ -1,58 +1,44 @@
 import random
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6 import QtWidgets
-from PySide6.QtCore import QProcess, Slot
+from PySide6.QtCore import QProcess, Qt, Slot
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
     QPushButton,
     QTextEdit,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
 
-def current_timestamp() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
 @dataclass
-class Note:
-    id: int
-    file_name: str
-    body: str
-    created_at: str = field(default_factory=current_timestamp)
-    updated_at: str = field(default_factory=current_timestamp)
-
-    def update_timestamp(self) -> None:
-        self.updated_at = current_timestamp()
+class DirectoryEntry:
+    path: Path
+    is_dir: bool
+    body: str | None = None
+    children_loaded: bool = False
 
 
 class Widget(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.notes_dir = Path("notes")
-        self.notes_dir.mkdir(exist_ok=True)
-        self.notes = [
-            Note(note_id, file.name, file.read_text())
-            for note_id, file in enumerate(self.notes_dir.iterdir())
-            if file.is_file()
-        ]
-        self.next_id = len(self.notes)
+        self.current_dir = Path.cwd()
         self.process: QProcess | None = None
 
-        self.notes_list = QListWidget()
-        self.refresh_notes_list()
+        self.notes_tree = QTreeWidget()
+        self.notes_tree.setHeaderLabel("Files")
         self.note_file_name_edit = QLineEdit()
         self.body_edit = QTextEdit()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("Search notes...")
+        self.search_edit.setPlaceholderText("Search disabled")
+        self.search_edit.setEnabled(False)
         self.translation_output = QTextEdit()
         self.translation_output.setReadOnly(True)
         self.translation_output.setMaximumHeight(65)
@@ -60,7 +46,7 @@ class Widget(QWidget):
         self.left = QVBoxLayout()
         self.left.addWidget(QLabel("Files"))
         self.left.addWidget(self.search_edit)
-        self.left.addWidget(self.notes_list)
+        self.left.addWidget(self.notes_tree)
         self.left.addWidget(QLabel("File Name"))
         self.left.addWidget(self.note_file_name_edit)
 
@@ -84,86 +70,170 @@ class Widget(QWidget):
 
         self.translate.clicked.connect(self.translate_text)
         self.new.clicked.connect(self.new_note)
-        self.notes_list.currentRowChanged.connect(self.select_note)
+        self.notes_tree.currentItemChanged.connect(self.select_entry)
+        self.notes_tree.itemClicked.connect(self.load_directory_on_click)
+        self.notes_tree.itemExpanded.connect(self.load_directory_children)
         self.save.clicked.connect(self.save_note)
         self.delete.clicked.connect(self.delete_note)
-        self.search_edit.textChanged.connect(self.filter_notes)
 
         self.main = QHBoxLayout()
         self.main.addLayout(self.left, 3)
         self.main.addLayout(self.right, 7)
 
         self.setLayout(self.main)
+        self.load_root_directory(self.current_dir)
+
+    def load_root_directory(self, directory: Path):
+        self.current_dir = directory
+        self.notes_tree.clear()
+
+        root_entry = DirectoryEntry(directory, is_dir=True)
+        root_item = QTreeWidgetItem([directory.name or str(directory)])
+        root_item.setData(0, Qt.ItemDataRole.UserRole, root_entry)
+        root_item.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator)
+
+        self.notes_tree.addTopLevelItem(root_item)
+        self.load_directory_children(root_item)
+        root_item.setExpanded(True)
+
+    @Slot(QTreeWidgetItem)
+    def load_directory_children(self, item: QTreeWidgetItem):
+        entry = item.data(0, Qt.ItemDataRole.UserRole)
+
+        if entry is None or not entry.is_dir or entry.children_loaded:
+            return
+
+        try:
+            paths = sorted(
+                entry.path.iterdir(), key=lambda path: (not path.is_dir(), path.name.lower())
+            )
+        except OSError:
+            entry.children_loaded = True
+            return
+
+        for path in paths:
+            child_entry = DirectoryEntry(path=path, is_dir=path.is_dir())
+            child_item = QTreeWidgetItem([path.name])
+            child_item.setData(0, Qt.ItemDataRole.UserRole, child_entry)
+
+            if path.is_dir():
+                child_item.setChildIndicatorPolicy(
+                    QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
+                )
+
+            item.addChild(child_item)
+
+        entry.children_loaded = True
+
+    @Slot(QTreeWidgetItem, int)
+    def load_directory_on_click(self, item: QTreeWidgetItem, column: int):
+        self.load_directory_children(item)
 
     @Slot()
     def new_note(self):
-        num = random.randint(1, 100000)
-        note = Note(
-            self.next_note_id(),
-            f"tmp{num}.txt",
-            f"{[x for x in range(random.randint(1, 100))]}",
-        )
-        self.notes.append(note)
-        self.notes_list.addItem(note.file_name)
-        self.notes_list.setCurrentRow(len(self.notes) - 1)
+        parent_item = self.directory_for_new_note()
+        parent_entry = parent_item.data(0, Qt.ItemDataRole.UserRole)
 
-    @Slot(int)
-    def select_note(self, row):
-        if row < 0 or row >= len(self.notes):
+        if not parent_entry.children_loaded:
+            self.load_directory_children(parent_item)
+
+        num = random.randint(1, 100000)
+        file_name = f"tmp{num}.txt"
+        body = f"{[x for x in range(random.randint(1, 100))]}"
+        path = parent_entry.path / file_name
+        entry = DirectoryEntry(path=path, is_dir=False, body=body)
+        item = QTreeWidgetItem([file_name])
+        item.setData(0, Qt.ItemDataRole.UserRole, entry)
+
+        parent_item.addChild(item)
+        parent_item.setExpanded(True)
+        self.notes_tree.setCurrentItem(item)
+
+    def directory_for_new_note(self) -> QTreeWidgetItem:
+        item = self.notes_tree.currentItem() or self.notes_tree.topLevelItem(0)
+        entry = item.data(0, Qt.ItemDataRole.UserRole)
+
+        if entry.is_dir:
+            return item
+
+        return item.parent() or self.notes_tree.topLevelItem(0)
+
+    @Slot(QTreeWidgetItem, QTreeWidgetItem)
+    def select_entry(self, current: QTreeWidgetItem | None, previous: QTreeWidgetItem | None):
+        if current is None:
             return
 
-        note = self.notes[row]
-        self.note_file_name_edit.setText(note.file_name)
-        self.body_edit.setPlainText(note.body)
+        entry = current.data(0, Qt.ItemDataRole.UserRole)
+
+        if entry.is_dir:
+            self.note_file_name_edit.setText(entry.path.name)
+            self.body_edit.clear()
+            self.body_edit.setEnabled(False)
+            return
+
+        if entry.body is None:
+            try:
+                entry.body = entry.path.read_text()
+            except OSError as error:
+                entry.body = f"Could not read file: {error}"
+            except UnicodeDecodeError as error:
+                entry.body = f"Could not decode file as text: {error}"
+
+        self.body_edit.setEnabled(True)
+        self.note_file_name_edit.setText(entry.path.name)
+        self.body_edit.setPlainText(entry.body)
 
     @Slot()
     def save_note(self):
-        current_row = self.notes_list.currentRow()
+        current_item = self.notes_tree.currentItem()
+        if current_item is None:
+            return
+
+        entry = current_item.data(0, Qt.ItemDataRole.UserRole)
+        if entry.is_dir:
+            return
+
         file_name = self.note_file_name_edit.text()
+        if not file_name:
+            return
+
         body = self.body_edit.toPlainText()
-        new_path = self.notes_dir / file_name
+        new_path = entry.path.with_name(file_name)
 
-        if current_row >= 0:
-            old_file_name = self.notes[current_row].file_name
-            old_path = self.notes_dir / old_file_name
+        if new_path != entry.path and entry.path.exists():
+            entry.path.rename(new_path)
 
-            if old_file_name != file_name and old_path.exists():
-                old_path.rename(new_path)
-
-            new_path.write_text(body)
-
-            self.notes[current_row].file_name = file_name
-            self.notes[current_row].body = body
-            self.notes[current_row].update_timestamp()
-            row_to_select = current_row
-        else:
-            new_path.write_text(body)
-            self.notes.append(Note(self.next_note_id(), file_name, body))
-            row_to_select = len(self.notes) - 1
-
-        self.refresh_notes_list()
-        self.notes_list.setCurrentRow(row_to_select)
+        new_path.write_text(body)
+        entry.path = new_path
+        entry.body = body
+        current_item.setText(0, file_name)
 
     @Slot()
     def delete_note(self):
-        current_row = self.notes_list.currentRow()
-        if current_row >= 0:
-            (self.notes_dir / self.notes[current_row].file_name).unlink()
-            del self.notes[current_row]
+        current_item = self.notes_tree.currentItem()
+        if current_item is None:
+            return
 
-        self.refresh_notes_list()
+        entry = current_item.data(0, Qt.ItemDataRole.UserRole)
+        if entry.is_dir:
+            return
+
+        if entry.path.exists():
+            entry.path.unlink()
+
+        parent = current_item.parent()
+        if parent is None:
+            index = self.notes_tree.indexOfTopLevelItem(current_item)
+            self.notes_tree.takeTopLevelItem(index)
+        else:
+            parent.removeChild(current_item)
+
         self.body_edit.clear()
         self.note_file_name_edit.clear()
 
     @Slot(str)
     def filter_notes(self, text):
-        text = text.lower()
-
-        for row, note in enumerate(self.notes):
-            matches = text in note.file_name.lower() or text in note.body.lower()
-
-            item = self.notes_list.item(row)
-            item.setHidden(not matches)
+        return
 
     @Slot()
     def translate_text(self):
@@ -188,17 +258,6 @@ class Widget(QWidget):
 
         self.process.deleteLater()
         self.process = None
-
-    def refresh_notes_list(self):
-        self.notes_list.clear()
-
-        for note in self.notes:
-            self.notes_list.addItem(note.file_name)
-
-    def next_note_id(self) -> int:
-        note_id = self.next_id
-        self.next_id += 1
-        return note_id
 
 
 class MainWindow(QtWidgets.QMainWindow):
