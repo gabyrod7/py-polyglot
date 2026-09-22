@@ -90,7 +90,9 @@ class Widget(QWidget):
         root_entry = DirectoryEntry(directory, is_dir=True)
         root_item = QTreeWidgetItem([directory.name or str(directory)])
         root_item.setData(0, Qt.ItemDataRole.UserRole, root_entry)
-        root_item.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator)
+        root_item.setChildIndicatorPolicy(
+            QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
+        )
 
         self.notes_tree.addTopLevelItem(root_item)
         self.load_directory_children(root_item)
@@ -105,7 +107,8 @@ class Widget(QWidget):
 
         try:
             paths = sorted(
-                entry.path.iterdir(), key=lambda path: (not path.is_dir(), path.name.lower())
+                entry.path.iterdir(),
+                key=lambda path: (not path.is_dir(), path.name.lower()),
             )
         except OSError:
             entry.children_loaded = True
@@ -159,7 +162,9 @@ class Widget(QWidget):
         return item.parent() or self.notes_tree.topLevelItem(0)
 
     @Slot(QTreeWidgetItem, QTreeWidgetItem)
-    def select_entry(self, current: QTreeWidgetItem | None, previous: QTreeWidgetItem | None):
+    def select_entry(
+        self, current: QTreeWidgetItem | None, previous: QTreeWidgetItem | None
+    ):
         if current is None:
             return
 
