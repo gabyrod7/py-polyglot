@@ -1,63 +1,49 @@
-from core.config import PROVIDER_SPECS, get_setting
+from core.config import Result, Settings
 
 
-def run_translate_command(
-    query: str,
-    verbose: bool,
-    source_language: str = "",
-    target_language: str = "",
-) -> None:
-    provider = get_setting("PROVIDER")
+def _is_enabled(value: str | None) -> bool:
+    return value is not None and value.casefold() in {"1", "true", "yes", "on"}
 
-    if source_language == "":
-        source_language = (
-            get_setting("SOURCE_LANGUAGE") or input("Enter source language: ").strip()
-        )
 
-    if target_language == "":
-        target_language = (
-            get_setting("TARGET_LANGUAGE") or input("Enter target language: ").strip()
-        )
-
-    match provider:
+def run_translate(settings: Settings, query: str) -> Result:
+    match settings.provider_name.value:
         case "huggingface":
-            run_huggingface_model(query, verbose, source_language, target_language)
+            return run_huggingface_model(settings, query)
         case "openai":
-            run_openai_model(query, verbose, source_language, target_language)
+            return run_openai_model(settings, query)
         case "anthropic":
-            run_anthropic_model(query, verbose, source_language, target_language)
+            return run_anthropic_model(settings, query)
         case "gemini":
-            run_gemini_model(query, verbose, source_language, target_language)
+            return run_gemini_model(settings, query)
         case _:
-            raise ValueError(f"The provider {provider} is not supported.")
-
-
-def get_remote_model_settings(provider: str) -> tuple[str, str]:
-    model_name = get_setting(PROVIDER_SPECS[provider]["model_env"])
-    api_key = get_setting(PROVIDER_SPECS[provider]["api_key_env"])
-
-    if not model_name:
-        raise ValueError(
-            f"No {PROVIDER_SPECS[provider]['model_env']} environment variable found."
-        )
-    if not api_key:
-        raise ValueError(
-            f"No {PROVIDER_SPECS[provider]['api_key_env']} environment variable found."
-        )
-
-    return model_name, api_key
+            return Result(
+                error_code="PROVIDER_NOT_SUPPORTED",
+                error_message=(
+                    f"The provider {settings.provider_name.value} is not supported."
+                ),
+            )
 
 
 def run_openai_model(
+    settings: Settings,
     query: str,
-    verbose: bool,
-    source_language: str,
-    target_language: str,
-    model_name: str | None = None,
-    api_key: str | None = None,
-) -> None:
-    if model_name is None or api_key is None:
-        model_name, api_key = get_remote_model_settings("openai")
+) -> Result:
+    verbose = _is_enabled(settings.verbose.value)
+    source_language = settings.source_language.value
+    target_language = settings.target_language.value
+    model_name = settings.openai_model.value
+    api_key = settings.openai_api_key.value
+
+    if not model_name:
+        return Result(
+            error_code="BAD_MODEL_NAME",
+            error_message="No OpenAI model has been configured.",
+        )
+    if not api_key:
+        return Result(
+            error_code="MISSING_API_KEY",
+            error_message="No OpenAI API key has been configured.",
+        )
 
     if verbose:
         print(
@@ -81,9 +67,7 @@ def run_openai_model(
             input=query,
         )
     except openai.APITimeoutError as e:
-        print_openai_error(
-            title="OpenAI request timed out.", e=e, error_kind="timeout"
-        )
+        print_openai_error(title="OpenAI request timed out.", e=e, error_kind="timeout")
         raise SystemExit(1) from e
     except openai.APIConnectionError as e:
         print_openai_error(
@@ -95,6 +79,7 @@ def run_openai_model(
         raise SystemExit(1) from e
 
     print(response.output_text)
+    return Result()
 
 
 def print_openai_error(title: str, e: Exception, error_kind: str = "api") -> None:
@@ -217,15 +202,25 @@ def print_openai_error(title: str, e: Exception, error_kind: str = "api") -> Non
 
 
 def run_anthropic_model(
+    settings: Settings,
     query: str,
-    verbose: bool,
-    source_language: str,
-    target_language: str,
-    model_name: str | None = None,
-    api_key: str | None = None,
-) -> None:
-    if model_name is None or api_key is None:
-        model_name, api_key = get_remote_model_settings("anthropic")
+) -> Result:
+    verbose = _is_enabled(settings.verbose.value)
+    source_language = settings.source_language.value
+    target_language = settings.target_language.value
+    model_name = settings.anthropic_model.value
+    api_key = settings.anthropic_api_key.value
+
+    if not model_name:
+        return Result(
+            error_code="BAD_MODEL_NAME",
+            error_message="No Anthropic model has been configured.",
+        )
+    if not api_key:
+        return Result(
+            error_code="MISSING_API_KEY",
+            error_message="No Anthropic API key has been configured.",
+        )
 
     if verbose:
         print(
@@ -272,6 +267,7 @@ def run_anthropic_model(
         raise SystemExit(1) from e
 
     print(message.content[0].text)
+    return Result()
 
 
 def print_anthropic_error(title: str, e: Exception, error_kind: str = "api") -> None:
@@ -376,15 +372,25 @@ def print_anthropic_error(title: str, e: Exception, error_kind: str = "api") -> 
 
 
 def run_gemini_model(
+    settings: Settings,
     query: str,
-    verbose: bool,
-    source_language: str,
-    target_language: str,
-    model_name: str | None = None,
-    api_key: str | None = None,
-) -> None:
-    if model_name is None or api_key is None:
-        model_name, api_key = get_remote_model_settings("gemini")
+) -> Result:
+    verbose = _is_enabled(settings.verbose.value)
+    source_language = settings.source_language.value
+    target_language = settings.target_language.value
+    model_name = settings.gemini_model.value
+    api_key = settings.gemini_api_key.value
+
+    if not model_name:
+        return Result(
+            error_code="BAD_MODEL_NAME",
+            error_message="No Gemini model has been configured.",
+        )
+    if not api_key:
+        return Result(
+            error_code="MISSING_API_KEY",
+            error_message="No Gemini API key has been configured.",
+        )
 
     if verbose:
         print(
@@ -420,6 +426,7 @@ def run_gemini_model(
         raise SystemExit(1) from e
 
     print(response.text)
+    return Result()
 
 
 def print_gemini_error(title: str, e: Exception) -> None:
@@ -504,28 +511,24 @@ def print_gemini_error(title: str, e: Exception) -> None:
 
 
 def run_huggingface_model(
+    settings: Settings,
     query: str,
-    verbose: bool,
-    source_language: str,
-    target_language: str,
-) -> None:
+) -> Result:
     from torch.cuda import is_available as torch_cuda_is_available
     from transformers import MarianMTModel, MarianTokenizer
 
-    hf_token = get_setting("HF_TOKEN")
-    model_name = get_setting("HF_MODEL")
+    hf_token = settings.hf_token.value
+    model_name = settings.hf_model.value
 
     torch_device = "cuda" if torch_cuda_is_available() else "cpu"
 
     if not model_name:
-        raise ValueError(
-            "No model has been chosen. Use `config --set_model_name` options to set a model."
+        return Result(
+            error_code="BAD_MODEL_NAME",
+            error_message="No model has been chosen.",
         )
 
-    if source_language != "German":
-        model_name = "Helsinki-NLP/opus-mt_tiny_eng-deu"
-        print(f"Changed model name to {model_name}")
-
+    verbose = _is_enabled(settings.verbose.value)
     if verbose:
         from transformers.utils import logging
 
@@ -539,6 +542,7 @@ def run_huggingface_model(
     inputs = tokenizer(query, return_tensors="pt", padding=True).to(torch_device)
     translated = model.generate(**inputs)
 
-    result = tokenizer.decode(translated[0], skip_special_tokens=True)
+    translation = tokenizer.decode(translated[0], skip_special_tokens=True)
 
-    print(result)
+    print(translation)
+    return Result()

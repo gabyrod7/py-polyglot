@@ -1,224 +1,350 @@
 import getpass
 import os
-from typing import Literal
+from dataclasses import dataclass
+from pathlib import Path
 
 import keyring
-from dotenv import load_dotenv, set_key
-from keyring.errors import KeyringError, NoKeyringError
-
-SERVICE_NAME = "py-polyglot"
-PROVIDER_SPECS: dict[str, dict[str, str]] = {
-    "openai": {"model_env": "OPENAI_MODEL", "api_key_env": "OPENAI_API_KEY"},
-    "anthropic": {"model_env": "ANTHROPIC_MODEL", "api_key_env": "ANTHROPIC_API_KEY"},
-    "gemini": {"model_env": "GEMINI_MODEL", "api_key_env": "GEMINI_API_KEY"},
-    "huggingface": {"model_env": "HF_MODEL", "api_key_env": "HF_TOKEN"},
-}
-SETTINGS_SPEC: dict[str, dict[str, bool]] = {
-    "HF_MODEL": {"secret": False},
-    "PROVIDER": {"secret": False},
-    "OPENAI_MODEL": {"secret": False},
-    "ANTHROPIC_MODEL": {"secret": False},
-    "GEMINI_MODEL": {"secret": False},
-    "SOURCE_LANGUAGE": {"secret": False},
-    "TARGET_LANGUAGE": {"secret": False},
-    "HF_TOKEN": {"secret": True},
-    "OPENAI_API_KEY": {"secret": True},
-    "ANTHROPIC_API_KEY": {"secret": True},
-    "GEMINI_API_KEY": {"secret": True},
-}
+from dotenv import dotenv_values, set_key
+from keyring.errors import KeyringError
 
 
-def get_config_dir() -> str:
-    if "APPDATA" in os.environ:
-        config_home = os.environ["APPDATA"]
-    elif "XDG_CONFIG_HOME" in os.environ:
-        config_home = os.environ["XDG_CONFIG_HOME"]
-    else:
-        config_home = os.path.join(os.environ["HOME"], ".config")
-    return os.path.join(config_home, "py-polyglot")
+@dataclass(repr=False)
+class Setting:
+    key: str
+    value: str | None = None
+    secret: bool = False
+
+    def __repr__(self) -> str:
+        value = "<redacted>" if self.secret else self.value
+
+        return (
+            f"{type(self).__name__}("
+            f"key={self.key!r}, "
+            f"value={value!r}, "
+            f"secret={self.secret!r})"
+        )
 
 
-def get_config_file_path() -> str:
-    config_home = get_config_dir()
-    return os.path.join(config_home, "config.env")
+@dataclass
+class Result:
+    error_code: str | None = None
+    error_message: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        return self.error_code is None
 
 
-def load_config_file() -> bool:
-    return load_dotenv(get_config_file_path())
+class Settings:
+    def __init__(self):
+        self.source_language = Setting("SOURCE_LANGUAGE", "German")
+        self.target_language = Setting("TARGET_LANGUAGE", "English")
+        self.provider_name = Setting("PROVIDER", "huggingface")
+        self.hf_model = Setting("HF_MODEL", "Helsinki-NLP/opus-mt_tiny_deu-eng")
+        self.hf_token = Setting("HF_TOKEN", secret=True)
+        self.hf_model_author = Setting("HF_MODEL_AUTHOR", "Helsinki-NLP")
+        self.openai_model = Setting("OPENAI_MODEL", "gpt-5.6-luna")
+        self.openai_api_key = Setting("OPENAI_API_KEY", secret=True)
+        self.anthropic_model = Setting("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        self.anthropic_api_key = Setting("ANTHROPIC_API_KEY", secret=True)
+        self.gemini_model = Setting("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        self.gemini_api_key = Setting("GEMINI_API_KEY", secret=True)
+        self.verbose = Setting("VERBOSE", "False")
+
+        self.allowed_providers = {
+            "openai": {"model": self.openai_model, "api_key": self.openai_api_key},
+            "anthropic": {
+                "model": self.anthropic_model,
+                "api_key": self.anthropic_api_key,
+            },
+            "gemini": {"model": self.gemini_model, "api_key": self.gemini_api_key},
+            "huggingface": {"model": self.hf_model, "api_key": self.hf_token},
+        }
+
+    def __repr__(self) -> str:
+        values = ", ".join(
+            f"{name}={setting!r}"
+            for name, setting in vars(self).items()
+            if isinstance(setting, Setting)
+        )
+        return (
+            f"{type(self).__name__}("
+            f"{values}, allowed_providers={list(self.allowed_providers)!r})"
+        )
 
 
-def get_setting(key: str) -> str | None:
-    spec = SETTINGS_SPEC[key]
+class SettingsManager:
+    SERVICE_NAME = "py-polyglot"
 
-    value = os.environ.get(key)
-    if value:
-        return value
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self.allowed_languages = ["English", "German", "Spanish"]
 
-    if spec["secret"]:
-        try:
-            return keyring.get_password(SERVICE_NAME, key)
-        except (KeyringError, NoKeyringError):
-            print(
-                f"Warning: could not get {key} to the system keyring. "
-                f"You can save it in {get_config_file_path()} but this is not secure."
-            )
+        if not self.get_config_file_path().exists():
+            self.get_config_dir().mkdir(parents=True, exist_ok=True)
+            self.get_config_file_path().touch(mode=0o600)
 
-    return None
+    def load(self) -> Result:
+        """Load all settings into the current Settings object."""
+        config_file_dict = dotenv_values(self.get_config_file_path())
 
+        for setting in vars(self.settings).values():
+            if not isinstance(setting, Setting):
+                continue
 
-def save_setting_to_config_file(key: str, value: str) -> None:
-    config_path = get_config_file_path()
-    if not os.path.exists(config_path):
-        os.makedirs(get_config_dir(), exist_ok=True)
-        with open(config_path, "w"):
-            pass
-        os.chmod(config_path, 0o0600)
+            result = self.load_setting(setting, config_file_dict)
+            if not result.ok:
+                return result
 
-    set_key(dotenv_path=config_path, key_to_set=key, value_to_set=value)
+        return Result()
 
+    def load_setting(
+        self,
+        setting: Setting,
+        config_file_dict: dict[str, str | None],
+    ) -> Result:
+        if setting.key in os.environ:
+            setting.value = os.environ[setting.key]
+            return Result()
 
-def save_setting(key: str, value: str) -> None:
-    spec = SETTINGS_SPEC[key]
-
-    if spec["secret"]:
-        try:
-            keyring.set_password(SERVICE_NAME, key, value)
-        except (KeyringError, NoKeyringError):
-            print(
-                f"Warning: could not save {key} to the system keyring. "
-                f"Saving it in {get_config_file_path()} instead."
-            )
-            save_setting_to_config_file(key, value)
-    else:
-        save_setting_to_config_file(key, value)
-
-    os.environ[key] = value
-
-
-def get_api_key_for_provider(provider: str) -> str | None:
-    return get_setting(PROVIDER_SPECS[provider]["api_key_env"])
-
-
-def get_model_ids_for_provider(provider: str) -> list[str]:
-    api_key = get_api_key_for_provider(provider)
-
-    match provider:
-        case "huggingface":
-            from huggingface_hub import list_models as list_huggingface_models
-
-            return [
-                model.id
-                for model in list_huggingface_models(
-                    author="Helsinki-NLP",
-                    token=api_key,
+        if setting.secret:
+            try:
+                setting.value = keyring.get_password(
+                    self.SERVICE_NAME,
+                    setting.key,
                 )
-            ]
+            except KeyringError:
+                setting.value = None
+                return Result(
+                    error_code="KEYRING_READ_FAILED",
+                    error_message=f"Could not read {setting.key} from the system keyring.",
+                )
 
-        case "openai":
-            from openai import OpenAI
+            return Result()
 
-            client = OpenAI(api_key=api_key)
-            return [model.id for model in client.models.list().data]
+        if setting.key in config_file_dict:
+            setting.value = config_file_dict.get(setting.key)
 
-        case "anthropic":
-            from anthropic import Anthropic
+        return Result()
 
-            client = Anthropic(api_key=api_key)
-            return [model.id for model in client.models.list().data]
-
-        case "gemini":
-            from google import genai
-
-            client = genai.Client(api_key=api_key)
-            return [
-                model.name
-                for model in client.models.list()
-                if "generateContent" in model.supported_actions
-            ]
-
-        case _:
-            raise NotImplementedError(
-                f"Model configuration for provider {provider} is not implemented."
+    def set_setting(self, setting: Setting, value: str) -> Result:
+        if setting.secret:
+            try:
+                keyring.set_password(self.SERVICE_NAME, setting.key, value)
+            except KeyringError:
+                return Result(
+                    error_code="KEYRING_WRITE_FAILED",
+                    error_message=(
+                        f"Could not set {setting.key} in the system keyring. "
+                        "Previous password was not changed."
+                    ),
+                )
+        else:
+            set_key(
+                dotenv_path=str(self.get_config_file_path()),
+                key_to_set=setting.key,
+                value_to_set=value,
             )
 
+        setting.value = value
+        return Result()
 
-def list_models() -> None:
-    provider = get_setting("PROVIDER")
-    if provider not in PROVIDER_SPECS:
-        raise NotImplementedError(
-            f"Model configuration for provider {provider} is not implemented."
+    #    def verify_settings(self):
+    #        allowed_languages = ['English', 'German', 'Spanish']
+    #
+    #        if self.settings.source_language in allowed_languages:
+    #            return Result()
+    #        else:
+    #            return Result(
+    #                error_code="UNSOPPORTED_LANGUAGE",
+    #                error_message=""
+    #            )
+
+    @classmethod
+    def get_config_dir(cls) -> Path:
+        if appdata := os.environ.get("APPDATA"):
+            config_home = Path(appdata)
+        elif xdg_config_home := os.environ.get("XDG_CONFIG_HOME"):
+            config_home = Path(xdg_config_home)
+        else:
+            config_home = Path.home() / ".config"
+
+        return config_home / cls.SERVICE_NAME
+
+    @classmethod
+    def get_config_file_path(cls) -> Path:
+        return cls.get_config_dir() / "config.env"
+
+    def set_api_key(self) -> Result:
+        provider_name = self.settings.provider_name.value
+        provider = self.settings.allowed_providers.get(provider_name or "")
+        if provider is None:
+            return Result(
+                error_code="PROVIDER_NOT_SUPPORTED",
+                error_message=f"The provider {provider_name} is not supported.",
+            )
+
+        api_key = getpass.getpass(
+            f"Enter API key or token for {provider_name}: "
+        ).strip()
+        if not api_key:
+            return Result(
+                error_code="EMPTY_API_KEY",
+                error_message="ERROR: Empty api key.",
+            )
+
+        result = self.set_setting(provider["api_key"], api_key)
+        if not result.ok:
+            return result
+
+        print(f"Saved API key for provider {provider_name}")
+        return Result()
+
+    def set_language(self, language: str, to: str) -> Result:
+        if not language:
+            language = input("Enter language: ").strip()
+
+        if language not in self.allowed_languages:
+            return Result(
+                error_code="BAD", error_message=f"ERROR: {language} not supported"
+            )
+
+        if to not in ("source", "target"):
+            return Result(
+                error_code="BAD",
+                error_message=f"ERROR: {to} was proivded but only 'source' and 'target' are allowed",
+            )
+
+        lang = (
+            self.settings.source_language
+            if to == "source"
+            else self.settings.target_language
         )
 
-    print(f"{provider} was identified as the model provider.")
-    print("You can choose among the following models:")
-    for model_id in get_model_ids_for_provider(provider):
-        print(model_id)
+        self.set_setting(lang, language)
+        print(f"{lang.key} has been set to {language}")
+        return Result()
+
+    def set_provider(self, provider_name: str) -> Result:
+        if provider_name not in self.settings.allowed_providers:
+            print("Choose among the following providers:")
+            for provider in self.settings.allowed_providers:
+                print(provider)
+
+        while provider_name not in self.settings.allowed_providers:
+            provider_name = input("Input provider: ").strip()
+
+        result = self.set_setting(self.settings.provider_name, provider_name)
+        if not result.ok:
+            return result
+
+        return Result()
+
+    def set_model_name(self, model_name: str) -> Result:
+        provider_name = self.settings.provider_name.value
+        if provider_name not in self.settings.allowed_providers:
+            return Result(
+                error_code="PROVIDER_NOT_SUPPORTED",
+                error_message=f"The provider {provider_name} is not supported.",
+            )
+
+        if not model_name:
+            model_name = input("Enter model name: ").strip()
+
+        model_setting = self.settings.allowed_providers[provider_name]["model"]
+
+        model_ids = self.get_model_ids_for_provider()
+        if not any(model_name == model_id for model_id in model_ids):
+            return Result(
+                error_code="MODEL_NOT_FOUND",
+                error_message=f"Model name '{model_name}' not found in list of model ids.",
+            )
+
+        result = self.set_setting(model_setting, model_name)
+        if not result.ok:
+            return result
+
+        print(f"{model_setting.key} set to {model_name}")
+        return Result()
+
+    def list_models(self) -> None:
+        provider = self.settings.provider_name.value
+
+        if provider is None:
+            print("Issue: provider is set to None. No models to list.")
+            return
+
+        print(f"{provider} was identified as the model provider.")
+        print("You can choose among the following models:")
+        for model_id in self.get_model_ids_for_provider():
+            print(model_id)
+
+    def get_model_ids_for_provider(self) -> list[str]:
+        provider_name = self.settings.provider_name.value
+        api_key = self.settings.allowed_providers[provider_name]["api_key"].value
+
+        match provider_name:
+            case "huggingface":
+                from huggingface_hub import list_models as list_huggingface_models
+
+                author = self.settings.hf_model_author.value
+
+                if author == "Helsinki-NLP":
+                    return [
+                        "Helsinki-NLP/opus-mt-es_en",
+                        "Helsinki-NLP/opus-mt-es_de",
+                        "Helsinki-NLP/opus-mt-en_es",
+                        "Helsinki-NLP/opus-mt-en_de",
+                        "Helsinki-NLP/opus-mt-de_es",
+                        "Helsinki-NLP/opus-mt-de_en",
+                        "Helsinki-NLP/opus-mt_tiny_esp_eng",
+                        "Helsinki-NLP/opus-mt_tiny_esp_deu",
+                        "Helsinki-NLP/opus-mt_tiny_eng_esp",
+                        "Helsinki-NLP/opus-mt_tiny_eng_deu",
+                        "Helsinki-NLP/opus-mt_tiny_deu_spa",
+                        "Helsinki-NLP/opus-mt_tiny_deu_eng",
+                    ]
+                else:
+                    return [
+                        model.id
+                        for model in list_huggingface_models(
+                            author=author,
+                            token=api_key,
+                        )
+                    ]
+
+            case "openai":
+                from openai import OpenAI
+
+                client = OpenAI(api_key=api_key)
+                return [model.id for model in client.models.list().data]
+
+            case "anthropic":
+                from anthropic import Anthropic
+
+                client = Anthropic(api_key=api_key)
+                return [model.id for model in client.models.list().data]
+
+            case "gemini":
+                from google import genai
+
+                client = genai.Client(api_key=api_key)
+                return [
+                    model.name
+                    for model in client.models.list()
+                    if "generateContent" in model.supported_actions
+                ]
+
+            case _:
+                raise NotImplementedError(
+                    f"Model configuration for provider {provider_name} is not implemented."
+                )
 
 
-def set_model_name(model_name: str) -> None:
-    provider = get_setting("PROVIDER")
-    if provider not in PROVIDER_SPECS:
-        raise NotImplementedError(
-            f"Model configuration for provider {provider} is not implemented."
-        )
-
-    if not model_name:
-        model_name = input("Enter model name: ").strip()
-
-    if provider == "huggingface" and "opus-mt_tiny" not in model_name:
-        raise ValueError(
-            f"The model name given is '{model_name}' but only the 'opus-mt_tiny' models are supported. Use 'py-polyglot config --list_model_names' flag to find all supported models."
-        )
-
-    model_ids = get_model_ids_for_provider(provider)
-    model_found = any(model_name == model_id for model_id in model_ids)
-    if not model_found:
-        raise ValueError(f"The model {model_name} is not provided by {provider}.")
-
-    model_env = PROVIDER_SPECS[provider]["model_env"]
-    save_setting(key=model_env, value=model_name)
-    print(f"{model_env} has been set to {model_name}")
-
-
-def set_provider(provider: str) -> None:
-    if provider not in PROVIDER_SPECS:
-        print(
-            f"The provider {provider} is not supported. Please choose among the following model providers:"
-        )
-        for i, prov in enumerate(PROVIDER_SPECS.keys(), start=1):
-            print(f"{i}. {prov}")
-        while provider not in PROVIDER_SPECS:
-            provider = input("Enter provider: ")
-
-    save_setting("PROVIDER", provider)
-    print(f"PROVIDER set to {provider}")
-
-
-def set_language(language: str, to: Literal["source", "target"]) -> None:
-    if to not in ("source", "target"):
-        print(f"`{to}` was provided but only `source` and `target` are allowed.")
-        while to not in ("source", "target"):
-            to = input("Enter source or target: ").strip()
-
-    if not language:
-        language = input("Enter language: ").strip()
-
-    key = f"{to.upper()}_LANGUAGE"
-    save_setting(key=key, value=language)
-    print(f"{key} has been set to {language}")
-
-
-def set_api_key() -> None:
-    provider = get_setting(key="PROVIDER")
-    if provider not in PROVIDER_SPECS:
-        print(
-            f"The provider {provider} is not supported. Please choose among the following model providers:"
-        )
-        for i, prov in enumerate(PROVIDER_SPECS.keys(), start=1):
-            print(f"{i}. {prov}")
-        while provider not in PROVIDER_SPECS:
-            provider = input("Enter provider: ")
-
-    api_key = getpass.getpass(f"Enter API key or token for {provider}: ").strip()
-    save_setting(key=PROVIDER_SPECS[provider]["api_key_env"], value=api_key)
-    print(f"Save API for provider {provider}")
+if __name__ == "__main__":
+    settings = Settings()
+    manager = SettingsManager(settings)
+    result = manager.load()
+    if not result.ok:
+        print(result.error_message)
+    print(settings)
