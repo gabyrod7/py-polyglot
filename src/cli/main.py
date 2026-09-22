@@ -1,6 +1,6 @@
 import argparse
 
-from core.config import load_config_file
+from core.config import Settings, SettingsManager
 
 ENVIRONMENT_HELP = """
 Environment variables:
@@ -17,10 +17,23 @@ Environment variables:
   GEMINI_API_KEY            Gemini API key.
 """
 
-load_config_file()
+# load_config_file()
 
 
-def main():
+def main(
+    argv: list[str] | None = None,
+    settings_manager: SettingsManager | None = None,
+) -> int:
+    if settings_manager is None:
+        settings = Settings()
+        settings_manager = SettingsManager(settings)
+        result = settings_manager.load()
+        if not result.ok:
+            print(result.error_message)
+            return 1
+    else:
+        settings = settings_manager.settings
+
     parser = argparse.ArgumentParser(
         prog="py-polyglot",
         description="Translate text using Hugging Face or remote LLM providers.",
@@ -34,7 +47,7 @@ def main():
         help="Translate text",
     )
     translate_parser.add_argument("query", type=str, help="Word or phrase to translate")
-    translate_parser.add_argument("--verbose", action="store_false", help="")
+    translate_parser.add_argument("--verbose", action="store_true", help="")
     translate_parser.add_argument(
         "-s",
         "--source_language",
@@ -110,32 +123,28 @@ def main():
         help="Print path to file where settings are stored.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     match args.command:
         case "translate":
-            from core.translate import run_translate_command
+            from core.translate import run_translate
 
-            run_translate_command(
-                args.query,
-                args.verbose,
-                args.source_language,
-                args.target_language,
-            )
+            if args.source_language:
+                settings.source_language.value = args.source_language
+            if args.target_language:
+                settings.target_language.value = args.target_language
+            if args.verbose:
+                settings.verbose.value = "True"
+
+            result = run_translate(settings, args.query)
+            if not result.ok:
+                print(result.error_message)
+                return 1
 
         case "info":
             print(ENVIRONMENT_HELP.strip())
 
         case "config":
-            from core.config import (
-                get_config_file_path,
-                list_models,
-                set_api_key,
-                set_language,
-                set_model_name,
-                set_provider,
-            )
-
             config_args_used = any(
                 getattr(args, action.dest) != config_parser.get_default(action.dest)
                 for action in config_parser._actions
@@ -146,23 +155,35 @@ def main():
                 config_parser.print_help()
 
             if args.list_model_names:
-                list_models()
+                settings_manager.list_models()
             if args.set_model_name is not None:
-                set_model_name(model_name=args.set_model_name)
+                res = settings_manager.set_model_name(model_name=args.set_model_name)
+                if not res.ok:
+                    print(res.error_message)
             if args.set_provider is not None:
-                set_provider(args.set_provider)
+                res = settings_manager.set_provider(args.set_provider)
+                if not res.ok:
+                    print(res.error_message)
             if args.set_api_key:
-                set_api_key()
+                res = settings_manager.set_api_key()
+                if not res.ok:
+                    print(res.error_message)
             if args.set_source_language is not None:
-                set_language(args.set_source_language, "source")
+                res = settings_manager.set_language(args.set_source_language, "source")
+                if not res.ok:
+                    print(res.error_message)
             if args.set_target_language is not None:
-                set_language(args.set_target_language, "target")
+                res = settings_manager.set_language(args.set_target_language, "target")
+                if not res.ok:
+                    print(res.error_message)
             if args.print_config_file_path:
-                print(get_config_file_path())
+                print(settings_manager.get_config_file_path())
 
         case _:
             parser.print_help()
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
