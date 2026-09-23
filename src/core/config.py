@@ -39,19 +39,71 @@ class Result:
 
 class Settings:
     def __init__(self):
-        self.provider_name = Setting("PROVIDER", value="huggingface", environment_info="Provider to use i.e., huggingface, openai, anthropic or gemini.")
-        self.source_language = Setting("SOURCE_LANGUAGE", value="German", environment_info="Default source language for translations.")
-        self.target_language = Setting("TARGET_LANGUAGE", value="English", environment_info="Default target language for translations.")
-        self.hf_model = Setting("HF_MODEL", value="Helsinki-NLP/opus-mt_tiny_deu-eng", environment_info="Hugging Face model name.")
-        self.hf_token = Setting("HF_TOKEN", secret=True, environment_info="Hugging Face token.")
-        self.hf_model_author = Setting("HF_MODEL_AUTHOR", value="Helsinki-NLP", environment_info="Author of Hugging Face model.")
-        self.openai_model = Setting("OPENAI_MODEL", value="gpt-5.6-luna", environment_info="OpenAI model name.")
-        self.openai_api_key = Setting("OPENAI_API_KEY", secret=True, environment_info="OpenAI API key.")
-        self.anthropic_model = Setting("ANTHROPIC_MODEL", value="claude-haiku-4-5", environment_info="Anthropic model name.")
-        self.anthropic_api_key = Setting("ANTHROPIC_API_KEY", secret=True, environment_info="Anthropic API key.")
-        self.gemini_model = Setting("GEMINI_MODEL", value="gemini-3.5-flash-lite", environment_info="Gemini model name.")
-        self.gemini_api_key = Setting("GEMINI_API_KEY", secret=True, environment_info="Gemini API key.")
-        self.verbose = Setting("VERBOSE", value="False", environment_info="Increase print messages.")
+        self.provider_name = Setting(
+            "PROVIDER",
+            value="huggingface",
+            environment_info=("Provider to use (for example, huggingface or openai)."),
+        )
+        self.source_language = Setting(
+            "SOURCE_LANGUAGE",
+            value="German",
+            environment_info="Language of the text to translate (for example, German).",
+        )
+        self.target_language = Setting(
+            "TARGET_LANGUAGE",
+            value="English",
+            environment_info="Language to translate the text into (for example, English).",
+        )
+        self.hf_model = Setting(
+            "HF_MODEL",
+            value="Helsinki-NLP/opus-mt_tiny_deu-eng",
+            environment_info="Hugging Face model ID to use for translations.",
+        )
+        self.hf_token = Setting(
+            "HF_TOKEN",
+            secret=True,
+            environment_info="Access token used to authenticate with Hugging Face.",
+        )
+        self.hf_model_author = Setting(
+            "HF_MODEL_AUTHOR",
+            value="Helsinki-NLP",
+            environment_info="Author or organization used to filter Hugging Face models.",
+        )
+        self.openai_model = Setting(
+            "OPENAI_MODEL",
+            value="gpt-5.6-luna",
+            environment_info="OpenAI model ID to use for translations.",
+        )
+        self.openai_api_key = Setting(
+            "OPENAI_API_KEY",
+            secret=True,
+            environment_info="API key used to authenticate with OpenAI.",
+        )
+        self.anthropic_model = Setting(
+            "ANTHROPIC_MODEL",
+            value="claude-haiku-4-5",
+            environment_info="Anthropic model ID to use for translations.",
+        )
+        self.anthropic_api_key = Setting(
+            "ANTHROPIC_API_KEY",
+            secret=True,
+            environment_info="API key used to authenticate with Anthropic.",
+        )
+        self.gemini_model = Setting(
+            "GEMINI_MODEL",
+            value="gemini-3.5-flash-lite",
+            environment_info="Gemini model ID to use for translations.",
+        )
+        self.gemini_api_key = Setting(
+            "GEMINI_API_KEY",
+            secret=True,
+            environment_info="API key used to authenticate with Gemini.",
+        )
+        self.verbose = Setting(
+            "VERBOSE",
+            value="False",
+            environment_info=("Increase print messages."),
+        )
 
         self.allowed_providers = {
             "openai": {"model": self.openai_model, "api_key": self.openai_api_key},
@@ -341,6 +393,32 @@ class SettingsManager:
                 raise NotImplementedError(
                     f"Model configuration for provider {provider_name} is not implemented."
                 )
+
+    # def print_environment_info(self) -> None:
+    #    for setting in vars(self.settings).values():
+    #        if not isinstance(setting, Setting):
+    #            continue
+    #
+    #        print(f"{setting.key}: {setting.environment_info}")
+
+    def print_environment_info(self) -> None:
+        settings = [
+            setting
+            for setting in vars(self.settings).values()
+            if isinstance(setting, Setting)
+        ]
+
+        label_width = (
+            max(
+                (len(setting.key) + 1 for setting in settings),
+                default=0,
+            )
+            + 3
+        )
+
+        for setting in settings:
+            label = f"{setting.key}:"
+            print(f"{label:<{label_width}}{setting.environment_info}")
 
 
 if __name__ == "__main__":

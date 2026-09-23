@@ -2,23 +2,6 @@ import argparse
 
 from core.config import Settings, SettingsManager
 
-ENVIRONMENT_HELP = """
-Environment variables:
-  PROVIDER                  Provider to use: huggingface, openai, anthropic, gemini.
-  SOURCE_LANGUAGE           Default source language for remote translations.
-  TARGET_LANGUAGE           Default target language for remote translations.
-  HF_MODEL                  Hugging Face model name.
-  OPENAI_MODEL              OpenAI model name.
-  ANTHROPIC_MODEL           Anthropic model name.
-  GEMINI_MODEL              Gemini model name.
-  HF_TOKEN                  Hugging Face token.
-  OPENAI_API_KEY            OpenAI API key.
-  ANTHROPIC_API_KEY         Anthropic API key.
-  GEMINI_API_KEY            Gemini API key.
-"""
-
-# load_config_file()
-
 
 def main(
     argv: list[str] | None = None,
@@ -142,7 +125,7 @@ def main(
                 return 1
 
         case "info":
-            print(ENVIRONMENT_HELP.strip())
+            settings_manager.print_environment_info()
 
         case "config":
             config_args_used = any(
