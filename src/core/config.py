@@ -7,6 +7,7 @@ import keyring
 from dotenv import dotenv_values, set_key
 from keyring.errors import KeyringError
 
+from core.result import Result
 
 @dataclass(repr=False)
 class Setting:
@@ -27,14 +28,6 @@ class Setting:
         )
 
 
-@dataclass
-class Result:
-    error_code: str | None = None
-    error_message: str | None = None
-
-    @property
-    def ok(self) -> bool:
-        return self.error_code is None
 
 
 class Settings:
@@ -171,7 +164,7 @@ class SettingsManager:
                 setting.value = None
                 return Result(
                     error_code="KEYRING_READ_FAILED",
-                    error_message=f"Could not read {setting.key} from the system keyring.",
+                    message=f"Could not read {setting.key} from the system keyring.",
                 )
 
             return Result()
@@ -188,7 +181,7 @@ class SettingsManager:
             except KeyringError:
                 return Result(
                     error_code="KEYRING_WRITE_FAILED",
-                    error_message=(
+                    message=(
                         f"Could not set {setting.key} in the system keyring. "
                         "Previous password was not changed."
                     ),
@@ -235,7 +228,7 @@ class SettingsManager:
         if provider is None:
             return Result(
                 error_code="PROVIDER_NOT_SUPPORTED",
-                error_message=f"The provider {provider_name} is not supported.",
+                message=f"The provider {provider_name} is not supported.",
             )
 
         api_key = getpass.getpass(
@@ -244,7 +237,7 @@ class SettingsManager:
         if not api_key:
             return Result(
                 error_code="EMPTY_API_KEY",
-                error_message="ERROR: Empty api key.",
+                message="ERROR: Empty api key.",
             )
 
         result = self.set_setting(provider["api_key"], api_key)
@@ -260,13 +253,13 @@ class SettingsManager:
 
         if language not in self.allowed_languages:
             return Result(
-                error_code="BAD", error_message=f"ERROR: {language} not supported"
+                error_code="BAD", message=f"ERROR: {language} not supported"
             )
 
         if to not in ("source", "target"):
             return Result(
                 error_code="BAD",
-                error_message=f"ERROR: {to} was proivded but only 'source' and 'target' are allowed",
+                message=f"ERROR: {to} was proivded but only 'source' and 'target' are allowed",
             )
 
         lang = (
@@ -299,7 +292,7 @@ class SettingsManager:
         if provider_name not in self.settings.allowed_providers:
             return Result(
                 error_code="PROVIDER_NOT_SUPPORTED",
-                error_message=f"The provider {provider_name} is not supported.",
+                message=f"The provider {provider_name} is not supported.",
             )
 
         if not model_name:
@@ -311,15 +304,15 @@ class SettingsManager:
         if not any(model_name == model_id for model_id in model_ids):
             return Result(
                 error_code="MODEL_NOT_FOUND",
-                error_message=f"Model name '{model_name}' not found in list of model ids.",
+                message=f"Model name '{model_name}' not found in list of model ids.",
             )
 
         result = self.set_setting(model_setting, model_name)
         if not result.ok:
             return result
 
-        print(f"{model_setting.key} set to {model_name}")
-        return Result()
+        #print(f"{model_setting.key} set to {model_name}")
+        return Result(message=f"{model_setting.key} set to {model_name}")
 
     def list_models(self) -> None:
         provider = self.settings.provider_name.value
@@ -426,5 +419,5 @@ if __name__ == "__main__":
     manager = SettingsManager(settings)
     result = manager.load()
     if not result.ok:
-        print(result.error_message)
+        print(result.message)
     print(settings)
