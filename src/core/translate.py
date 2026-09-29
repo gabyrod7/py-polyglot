@@ -1,4 +1,5 @@
-from core.config import Result, Settings
+from core.config import Settings
+from core.result import Result
 
 
 def _is_enabled(value: str | None) -> bool:
@@ -18,7 +19,7 @@ def run_translate(settings: Settings, query: str) -> Result:
         case _:
             return Result(
                 error_code="PROVIDER_NOT_SUPPORTED",
-                error_message=(
+                message=(
                     f"The provider {settings.provider_name.value} is not supported."
                 ),
             )
@@ -37,12 +38,12 @@ def run_openai_model(
     if not model_name:
         return Result(
             error_code="BAD_MODEL_NAME",
-            error_message="No OpenAI model has been configured.",
+            message="No OpenAI model has been configured.",
         )
     if not api_key:
         return Result(
             error_code="MISSING_API_KEY",
-            error_message="No OpenAI API key has been configured.",
+            message="No OpenAI API key has been configured.",
         )
 
     if verbose:
@@ -78,8 +79,7 @@ def run_openai_model(
         print_openai_error(title="OpenAI API error.", e=e)
         raise SystemExit(1) from e
 
-    print(response.output_text)
-    return Result()
+    return Result(value=response.output_text)
 
 
 def print_openai_error(title: str, e: Exception, error_kind: str = "api") -> None:
@@ -214,12 +214,12 @@ def run_anthropic_model(
     if not model_name:
         return Result(
             error_code="BAD_MODEL_NAME",
-            error_message="No Anthropic model has been configured.",
+            message="No Anthropic model has been configured.",
         )
     if not api_key:
         return Result(
             error_code="MISSING_API_KEY",
-            error_message="No Anthropic API key has been configured.",
+            message="No Anthropic API key has been configured.",
         )
 
     if verbose:
@@ -266,8 +266,7 @@ def run_anthropic_model(
         print_anthropic_error(title="Anthropic SDK error.", e=e)
         raise SystemExit(1) from e
 
-    print(message.content[0].text)
-    return Result()
+    return Result(value=message.content[0].text)
 
 
 def print_anthropic_error(title: str, e: Exception, error_kind: str = "api") -> None:
@@ -384,12 +383,12 @@ def run_gemini_model(
     if not model_name:
         return Result(
             error_code="BAD_MODEL_NAME",
-            error_message="No Gemini model has been configured.",
+            message="No Gemini model has been configured.",
         )
     if not api_key:
         return Result(
             error_code="MISSING_API_KEY",
-            error_message="No Gemini API key has been configured.",
+            message="No Gemini API key has been configured.",
         )
 
     if verbose:
@@ -425,8 +424,7 @@ def run_gemini_model(
         print_gemini_error("Gemini API error.", e)
         raise SystemExit(1) from e
 
-    print(response.text)
-    return Result()
+    return Result(value=response.text)
 
 
 def print_gemini_error(title: str, e: Exception) -> None:
@@ -525,7 +523,7 @@ def run_huggingface_model(
     if not model_name:
         return Result(
             error_code="BAD_MODEL_NAME",
-            error_message="No model has been chosen.",
+            message="No model has been chosen.",
         )
 
     verbose = _is_enabled(settings.verbose.value)
@@ -544,5 +542,4 @@ def run_huggingface_model(
 
     translation = tokenizer.decode(translated[0], skip_special_tokens=True)
 
-    print(translation)
-    return Result()
+    return Result(value=translation, message=f"Using model: {model_name}")

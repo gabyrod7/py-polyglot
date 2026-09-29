@@ -222,6 +222,9 @@ class SettingsManager:
     def get_config_file_path(cls) -> Path:
         return cls.get_config_dir() / "config.env"
 
+    def get_selected_model(self) -> str:
+        return self.settings.allowed_providers[self.settings.provider_name.value]["model"].value
+
     def set_api_key(self) -> Result:
         provider_name = self.settings.provider_name.value
         provider = self.settings.allowed_providers.get(provider_name or "")
@@ -310,13 +313,15 @@ class SettingsManager:
         provider = self.settings.provider_name.value
 
         if provider is None:
-            print("Issue: provider is set to None. No models to list.")
-            return
+            return Result(error_code="No provider", message="Issue: provider is set to None. No models to list.")
 
-        print(f"{provider} was identified as the model provider.")
-        print("You can choose among the following models:")
-        for model_id in self.get_model_ids_for_provider():
-            print(model_id)
+        #print(f"{provider} was identified as the model provider.")
+        #print("You can choose among the following models:")
+        #for model_id in self.get_model_ids_for_provider():
+        #    print(model_id)
+        
+        model_ids = self.get_model_ids_for_provider()
+        return Result(value=model_ids)
 
     def get_model_ids_for_provider(self) -> list[str]:
         provider_name = self.settings.provider_name.value
@@ -378,13 +383,6 @@ class SettingsManager:
                 raise NotImplementedError(
                     f"Model configuration for provider {provider_name} is not implemented."
                 )
-
-    # def print_environment_info(self) -> None:
-    #    for setting in vars(self.settings).values():
-    #        if not isinstance(setting, Setting):
-    #            continue
-    #
-    #        print(f"{setting.key}: {setting.environment_info}")
 
     def print_environment_info(self) -> None:
         settings = [
