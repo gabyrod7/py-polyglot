@@ -273,14 +273,6 @@ class SettingsManager:
         return Result()
 
     def set_provider(self, provider_name: str) -> Result:
-        if provider_name not in self.settings.allowed_providers:
-            print("Choose among the following providers:")
-            for provider in self.settings.allowed_providers:
-                print(provider)
-
-        while provider_name not in self.settings.allowed_providers:
-            provider_name = input("Input provider: ").strip()
-
         result = self.set_setting(self.settings.provider_name, provider_name)
         if not result.ok:
             return result
