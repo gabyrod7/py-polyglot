@@ -18,7 +18,7 @@ def main(settings_manager: SettingsManager | None = None) -> int:
     widget = Widget(settings_manager)
     window = MainWindow(widget)
     window.resize(900, 300)
-    #window.resize(800, 600)
+    # window.resize(800, 600)
     window.show()
 
     return app.exec()

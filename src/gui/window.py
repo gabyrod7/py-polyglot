@@ -23,7 +23,7 @@ class TranslationThread(QThread):
     result_ready = Signal(object)
     failed = Signal(str)
 
-    #def __init__(self, settings: Settings, query: str, parent=None):
+    # def __init__(self, settings: Settings, query: str, parent=None):
     #    super().__init__(parent)
     def __init__(self, settings: Settings, query: str):
         super().__init__()
@@ -38,6 +38,7 @@ class TranslationThread(QThread):
             self.failed.emit(f"Translation exited with status {exc.code}.")
         except Exception as exc:
             self.failed.emit(str(exc))
+
 
 class ModelListThread(QThread):
     models_ready = Signal(object)
@@ -55,12 +56,11 @@ class ModelListThread(QThread):
                 self.models_ready.emit(result.value or [])
             else:
                 self.failed.emit(
-                    result.message
-                    or result.error_code
-                    or "Could not load models."
+                    result.message or result.error_code or "Could not load models."
                 )
         except Exception as exc:
             self.failed.emit(str(exc))
+
 
 @dataclass
 class DirectoryEntry:
@@ -89,7 +89,7 @@ class Widget(QWidget):
         source_language = settings_manager.settings.source_language.value
         if source_language is not None:
             self.combobox1.setCurrentText(source_language)
-        
+
         self.combobox2 = QComboBox()
         self.combobox2.addItems(settings_manager.allowed_languages)
         target_language = settings_manager.settings.target_language.value
@@ -137,61 +137,58 @@ class Widget(QWidget):
         self.combobox3.textActivated.connect(self.provider_changed)
         self.combobox4.textActivated.connect(self.model_changed)
 
+        # self.current_dir = Path.cwd()
 
+        # self.notes_tree = QTreeWidget()
+        # self.notes_tree.setHeaderLabel("Files")
+        # self.note_file_name_edit = QLineEdit()
+        # self.body_edit = QTextEdit()
+        # self.search_edit = QLineEdit()
+        # self.search_edit.setPlaceholderText("Search disabled")
+        # self.search_edit.setEnabled(False)
+        # self.translation_output = QTextEdit()
+        # self.translation_output.setReadOnly(True)
+        # self.translation_output.setMaximumHeight(65)
 
+        # self.left = QVBoxLayout()
+        # self.left.addWidget(QLabel("Files"))
+        # self.left.addWidget(self.search_edit)
+        # self.left.addWidget(self.notes_tree)
+        # self.left.addWidget(QLabel("File Name"))
+        # self.left.addWidget(self.note_file_name_edit)
 
-        #self.current_dir = Path.cwd()
+        # self.right = QVBoxLayout()
+        # self.right.addWidget(QLabel("Body"))
+        # self.right.addWidget(self.body_edit)
+        # self.right.addWidget(QLabel("Translation"))
+        # self.right.addWidget(self.translation_output)
 
-        #self.notes_tree = QTreeWidget()
-        #self.notes_tree.setHeaderLabel("Files")
-        #self.note_file_name_edit = QLineEdit()
-        #self.body_edit = QTextEdit()
-        #self.search_edit = QLineEdit()
-        #self.search_edit.setPlaceholderText("Search disabled")
-        #self.search_edit.setEnabled(False)
-        #self.translation_output = QTextEdit()
-        #self.translation_output.setReadOnly(True)
-        #self.translation_output.setMaximumHeight(65)
+        # self.translate = QPushButton("Translate (Ctrl-T)")
+        # self.new = QPushButton("New (Ctrl-N)")
+        # self.save = QPushButton("Save (Ctrl-S)")
+        # self.delete = QPushButton("Delete")
+        # self.right.addWidget(self.translate)
 
-        #self.left = QVBoxLayout()
-        #self.left.addWidget(QLabel("Files"))
-        #self.left.addWidget(self.search_edit)
-        #self.left.addWidget(self.notes_tree)
-        #self.left.addWidget(QLabel("File Name"))
-        #self.left.addWidget(self.note_file_name_edit)
+        # self.buttons_row = QHBoxLayout()
+        # self.buttons_row.addWidget(self.new)
+        # self.buttons_row.addWidget(self.save)
+        # self.buttons_row.addWidget(self.delete)
+        # self.right.addLayout(self.buttons_row)
 
-        #self.right = QVBoxLayout()
-        #self.right.addWidget(QLabel("Body"))
-        #self.right.addWidget(self.body_edit)
-        #self.right.addWidget(QLabel("Translation"))
-        #self.right.addWidget(self.translation_output)
+        # self.translate.clicked.connect(self.translate_text)
+        # self.new.clicked.connect(self.new_note)
+        # self.notes_tree.currentItemChanged.connect(self.select_entry)
+        # self.notes_tree.itemClicked.connect(self.load_directory_on_click)
+        # self.notes_tree.itemExpanded.connect(self.load_directory_children)
+        # self.save.clicked.connect(self.save_note)
+        # self.delete.clicked.connect(self.delete_note)
 
-        #self.translate = QPushButton("Translate (Ctrl-T)")
-        #self.new = QPushButton("New (Ctrl-N)")
-        #self.save = QPushButton("Save (Ctrl-S)")
-        #self.delete = QPushButton("Delete")
-        #self.right.addWidget(self.translate)
+        # self.main = QHBoxLayout()
+        # self.main.addLayout(self.left, 5)
+        # self.main.addLayout(self.right, 5)
 
-        #self.buttons_row = QHBoxLayout()
-        #self.buttons_row.addWidget(self.new)
-        #self.buttons_row.addWidget(self.save)
-        #self.buttons_row.addWidget(self.delete)
-        #self.right.addLayout(self.buttons_row)
-
-        #self.translate.clicked.connect(self.translate_text)
-        #self.new.clicked.connect(self.new_note)
-        #self.notes_tree.currentItemChanged.connect(self.select_entry)
-        #self.notes_tree.itemClicked.connect(self.load_directory_on_click)
-        #self.notes_tree.itemExpanded.connect(self.load_directory_children)
-        #self.save.clicked.connect(self.save_note)
-        #self.delete.clicked.connect(self.delete_note)
-
-        #self.main = QHBoxLayout()
-        #self.main.addLayout(self.left, 5)
-        #self.main.addLayout(self.right, 5)
-
-        #self.setLayout(self.main)
-        #self.load_root_directory(self.current_dir)
+        # self.setLayout(self.main)
+        # self.load_root_directory(self.current_dir)
 
     def load_root_directory(self, directory: Path):
         self.current_dir = directory
@@ -367,7 +364,7 @@ class Widget(QWidget):
 
         self.translation_thread = TranslationThread(settings, query)
         self.translation_thread.result_ready.connect(self.translation_ready)
-        #self.translation_thread.failed.connect(self.translation_failed)
+        # self.translation_thread.failed.connect(self.translation_failed)
         self.translation_thread.finished.connect(self.translation_finished)
         self.translation_thread.finished.connect(self.translation_thread.deleteLater)
         self.translation_thread.start()
@@ -375,9 +372,7 @@ class Widget(QWidget):
     @Slot(object)
     def translation_ready(self, result: Result):
         if result.ok:
-            self.right_body.setPlainText(
-                result.value or "No translation was returned."
-            )
+            self.right_body.setPlainText(result.value or "No translation was returned.")
         else:
             self.right_body.setPlainText(
                 result.message or result.error_code or "Translation failed."
@@ -392,7 +387,6 @@ class Widget(QWidget):
         self.translation_thread = None
         self.translate_button.setEnabled(True)
 
-
     @Slot(str)
     def provider_changed(self, provider_name: str):
         self.settings_manager.settings.provider_name.value = provider_name
@@ -402,7 +396,7 @@ class Widget(QWidget):
         self.combobox4.clear()
         if selected_model:
             self.combobox4.addItem(selected_model)
-            #self.combobox4.setCurrentText(selected_model)
+            # self.combobox4.setCurrentText(selected_model)
         self.load_models_async()
 
     def load_models_async(self):
@@ -447,7 +441,6 @@ class Widget(QWidget):
         self.combobox3.setEnabled(True)
         self.combobox4.setEnabled(True)
 
-
     @Slot(str)
     def model_changed(self, model_name: str):
         settings = self.settings_manager.settings
@@ -458,8 +451,8 @@ class Widget(QWidget):
 
         settings.allowed_providers[provider_name]["model"].value = model_name
 
-    #@Slot(str)
-    #def provider_changed(self, model_name: str):
+    # @Slot(str)
+    # def provider_changed(self, model_name: str):
     #    settings = self.settings_manager.settings
     #    provider_name = settings.provider_name.value
 
@@ -469,6 +462,7 @@ class Widget(QWidget):
     #    model_setting = settings.allowed_providers[provider_name]["model"]
     #    model_setting.value = model_name
 
+
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, widget):
         super().__init__()
@@ -476,19 +470,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.menu = self.menuBar()
         self.file_menu = self.menu.addMenu("File")
-        #self.edit_menu = self.menu.addMenu("Edit")
+        # self.edit_menu = self.menu.addMenu("Edit")
         self.tool_menu = self.menu.addMenu("Tools")
 
-        #new_action = self.file_menu.addAction("New", widget.new_note)
-        #new_action.setShortcut("Ctrl+N")
+        # new_action = self.file_menu.addAction("New", widget.new_note)
+        # new_action.setShortcut("Ctrl+N")
 
-        #save_action = self.file_menu.addAction("Save", widget.save_note)
-        #save_action.setShortcut("Ctrl+S")
+        # save_action = self.file_menu.addAction("Save", widget.save_note)
+        # save_action.setShortcut("Ctrl+S")
 
         quit_action = self.file_menu.addAction("Quit", self.close)
         quit_action.setShortcut("Ctrl+Q")
 
-        #self.edit_menu.addAction("Delete", widget.delete_note)
+        # self.edit_menu.addAction("Delete", widget.delete_note)
 
         translate_action = self.tool_menu.addAction("Translate", widget.translate_text)
         translate_action.setShortcut("Ctrl+T")

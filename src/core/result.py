@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Result:
     value: str | None = None

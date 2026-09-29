@@ -9,6 +9,7 @@ from keyring.errors import KeyringError
 
 from core.result import Result
 
+
 @dataclass(repr=False)
 class Setting:
     key: str
@@ -26,8 +27,6 @@ class Setting:
             f"secret={self.secret!r})"
             f"environment_info={self.environment_info!r})"
         )
-
-
 
 
 class Settings:
@@ -223,7 +222,9 @@ class SettingsManager:
         return cls.get_config_dir() / "config.env"
 
     def get_selected_model(self) -> str:
-        return self.settings.allowed_providers[self.settings.provider_name.value]["model"].value
+        return self.settings.allowed_providers[self.settings.provider_name.value][
+            "model"
+        ].value
 
     def set_api_key(self) -> Result:
         provider_name = self.settings.provider_name.value
@@ -255,9 +256,7 @@ class SettingsManager:
             language = input("Enter language: ").strip()
 
         if language not in self.allowed_languages:
-            return Result(
-                error_code="BAD", message=f"ERROR: {language} not supported"
-            )
+            return Result(error_code="BAD", message=f"ERROR: {language} not supported")
 
         if to not in ("source", "target"):
             return Result(
@@ -306,20 +305,23 @@ class SettingsManager:
         if not result.ok:
             return result
 
-        #print(f"{model_setting.key} set to {model_name}")
+        # print(f"{model_setting.key} set to {model_name}")
         return Result(message=f"{model_setting.key} set to {model_name}")
 
     def list_models(self) -> None:
         provider = self.settings.provider_name.value
 
         if provider is None:
-            return Result(error_code="No provider", message="Issue: provider is set to None. No models to list.")
+            return Result(
+                error_code="No provider",
+                message="Issue: provider is set to None. No models to list.",
+            )
 
-        #print(f"{provider} was identified as the model provider.")
-        #print("You can choose among the following models:")
-        #for model_id in self.get_model_ids_for_provider():
+        # print(f"{provider} was identified as the model provider.")
+        # print("You can choose among the following models:")
+        # for model_id in self.get_model_ids_for_provider():
         #    print(model_id)
-        
+
         model_ids = self.get_model_ids_for_provider()
         return Result(value=model_ids)
 

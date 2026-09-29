@@ -154,11 +154,15 @@ def main(
                 if not result.ok:
                     print(result.message)
             if args.set_source_language is not None:
-                result = settings_manager.set_language(args.set_source_language, "source")
+                result = settings_manager.set_language(
+                    args.set_source_language, "source"
+                )
                 if not result.ok:
                     print(result.message)
             if args.set_target_language is not None:
-                result = settings_manager.set_language(args.set_target_language, "target")
+                result = settings_manager.set_language(
+                    args.set_target_language, "target"
+                )
                 if not result.ok:
                     print(result.message)
             if args.print_config_file_path:
@@ -180,7 +184,9 @@ def set_provider(settings_manager: SettingsManager, provider_name: str) -> Resul
     while provider_name not in settings.allowed_providers:
         provider_name = input("Input provider: ").strip()
 
-    result = settings_manager.set_setting(setting=settings.provider_name, value=provider_name)
+    result = settings_manager.set_setting(
+        setting=settings.provider_name, value=provider_name
+    )
     if not result.ok:
         return result
 
