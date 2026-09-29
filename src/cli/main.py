@@ -1,6 +1,7 @@
 import argparse
 
 from core.config import Settings, SettingsManager
+from core.result import Result
 
 
 def main(
@@ -12,7 +13,7 @@ def main(
         settings_manager = SettingsManager(settings)
         result = settings_manager.load()
         if not result.ok:
-            print(result.error_message)
+            print(result.message)
             return 1
     else:
         settings = settings_manager.settings
@@ -20,7 +21,6 @@ def main(
     parser = argparse.ArgumentParser(
         prog="py-polyglot",
         description="Translate text using Hugging Face or remote LLM providers.",
-        #        epilog=ENVIRONMENT_HELP,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -121,8 +121,10 @@ def main(
 
             result = run_translate(settings, args.query)
             if not result.ok:
-                print(result.error_message)
+                print(result.message)
                 return 1
+
+            print(result.value)
 
         case "info":
             settings_manager.print_environment_info()
@@ -140,25 +142,25 @@ def main(
             if args.list_model_names:
                 settings_manager.list_models()
             if args.set_model_name is not None:
-                res = settings_manager.set_model_name(model_name=args.set_model_name)
-                if not res.ok:
-                    print(res.error_message)
+                result = settings_manager.set_model_name(model_name=args.set_model_name)
+                if not result.ok:
+                    print(result.message)
             if args.set_provider is not None:
-                res = settings_manager.set_provider(args.set_provider)
-                if not res.ok:
-                    print(res.error_message)
+                result = set_provider(settings_manager, args.set_provider)
+                if not result.ok:
+                    print(result.message)
             if args.set_api_key:
-                res = settings_manager.set_api_key()
-                if not res.ok:
-                    print(res.error_message)
+                result = settings_manager.set_api_key()
+                if not result.ok:
+                    print(result.message)
             if args.set_source_language is not None:
-                res = settings_manager.set_language(args.set_source_language, "source")
-                if not res.ok:
-                    print(res.error_message)
+                result = settings_manager.set_language(args.set_source_language, "source")
+                if not result.ok:
+                    print(result.message)
             if args.set_target_language is not None:
-                res = settings_manager.set_language(args.set_target_language, "target")
-                if not res.ok:
-                    print(res.error_message)
+                result = settings_manager.set_language(args.set_target_language, "target")
+                if not result.ok:
+                    print(result.message)
             if args.print_config_file_path:
                 print(settings_manager.get_config_file_path())
 
@@ -166,6 +168,23 @@ def main(
             parser.print_help()
 
     return 0
+
+
+def set_provider(settings_manager: SettingsManager, provider_name: str) -> Result:
+    settings = settings_manager.settings
+    if provider_name not in settings.allowed_providers:
+        print("Choose among the following providers:")
+        for provider in settings.allowed_providers:
+            print(provider)
+
+    while provider_name not in settings.allowed_providers:
+        provider_name = input("Input provider: ").strip()
+
+    result = settings_manager.set_setting(setting=settings.provider_name, value=provider_name)
+    if not result.ok:
+        return result
+
+    return Result()
 
 
 if __name__ == "__main__":
