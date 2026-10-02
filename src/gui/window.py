@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QTextEdit,
+    QLineEdit,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
@@ -84,49 +85,58 @@ class Widget(QWidget):
         self.left_body.setPlainText("laufen")
         self.right_body = QTextEdit()
 
-        self.combobox1 = QComboBox()
-        self.combobox1.addItems(settings_manager.allowed_languages)
+        self.source_language_dropdown = QComboBox()
+        self.source_language_dropdown.addItems(settings_manager.allowed_languages)
         source_language = settings_manager.settings.source_language.value
         if source_language is not None:
-            self.combobox1.setCurrentText(source_language)
+            self.source_language_dropdown.setCurrentText(source_language)
 
-        self.combobox2 = QComboBox()
-        self.combobox2.addItems(settings_manager.allowed_languages)
+        self.target_language_dropdown = QComboBox()
+        self.target_language_dropdown.addItems(settings_manager.allowed_languages)
         target_language = settings_manager.settings.target_language.value
         if target_language is not None:
-            self.combobox2.setCurrentText(target_language)
+            self.target_language_dropdown.setCurrentText(target_language)
 
-        self.combobox3 = QComboBox()
-        self.combobox3.addItems(settings_manager.settings.allowed_providers.keys())
+        self.provider_dropdown = QComboBox()
+        self.provider_dropdown.addItems(settings_manager.settings.allowed_providers.keys())
         provider_name = settings_manager.settings.provider_name.value
         if provider_name is not None:
-            self.combobox3.setCurrentText(provider_name)
+            self.provider_dropdown.setCurrentText(provider_name)
 
-        self.combobox4 = QComboBox()
+        self.model_selection_dropdown = QComboBox()
+        self.model_selection_dropdown.setStyleSheet("QComboBox { combobox-popup: 0; }")
+        self.model_selection_dropdown.setMaxVisibleItems(10)
         selected_model = settings_manager.get_selected_model()
         if selected_model:
-            self.combobox4.addItem(selected_model)
-            self.combobox4.setCurrentText(selected_model)
+            self.model_selection_dropdown.addItem(selected_model)
+            self.model_selection_dropdown.setCurrentText(selected_model)
+
+        self.model_selection_text_box = QLineEdit()
+        self.model_selection_text_box.setPlaceholderText("Insert model name.")
+
+        self.translate_button = QPushButton("Translate (Ctrl-T)")
 
         # layout
         self.left = QVBoxLayout()
-        self.left.addWidget(self.combobox1)
+        self.left.addWidget(self.source_language_dropdown)
         self.left.addWidget(self.left_body)
 
         self.right = QVBoxLayout()
-        self.right.addWidget(self.combobox2)
+        self.right.addWidget(self.target_language_dropdown)
         self.right.addWidget(self.right_body)
 
         self.columns = QHBoxLayout()
         self.columns.addLayout(self.left, 1)
         self.columns.addLayout(self.right, 1)
 
-        self.translate_button = QPushButton("Translate (Ctrl-T)")
+        self.model_selection_columns = QHBoxLayout()
+        self.model_selection_columns.addWidget(self.model_selection_dropdown, 1)
+        self.model_selection_columns.addWidget(self.model_selection_text_box, 1)
 
         self.main = QVBoxLayout()
         self.main.addLayout(self.columns, 1)
-        self.main.addWidget(self.combobox3)
-        self.main.addWidget(self.combobox4)
+        self.main.addWidget(self.provider_dropdown)
+        self.main.addLayout(self.model_selection_columns, 1)
         self.main.addWidget(self.translate_button)
 
         self.setLayout(self.main)
@@ -134,61 +144,9 @@ class Widget(QWidget):
         self.load_models_async()
 
         self.translate_button.clicked.connect(self.translate_text)
-        self.combobox3.textActivated.connect(self.provider_changed)
-        self.combobox4.textActivated.connect(self.model_changed)
-
-        # self.current_dir = Path.cwd()
-
-        # self.notes_tree = QTreeWidget()
-        # self.notes_tree.setHeaderLabel("Files")
-        # self.note_file_name_edit = QLineEdit()
-        # self.body_edit = QTextEdit()
-        # self.search_edit = QLineEdit()
-        # self.search_edit.setPlaceholderText("Search disabled")
-        # self.search_edit.setEnabled(False)
-        # self.translation_output = QTextEdit()
-        # self.translation_output.setReadOnly(True)
-        # self.translation_output.setMaximumHeight(65)
-
-        # self.left = QVBoxLayout()
-        # self.left.addWidget(QLabel("Files"))
-        # self.left.addWidget(self.search_edit)
-        # self.left.addWidget(self.notes_tree)
-        # self.left.addWidget(QLabel("File Name"))
-        # self.left.addWidget(self.note_file_name_edit)
-
-        # self.right = QVBoxLayout()
-        # self.right.addWidget(QLabel("Body"))
-        # self.right.addWidget(self.body_edit)
-        # self.right.addWidget(QLabel("Translation"))
-        # self.right.addWidget(self.translation_output)
-
-        # self.translate = QPushButton("Translate (Ctrl-T)")
-        # self.new = QPushButton("New (Ctrl-N)")
-        # self.save = QPushButton("Save (Ctrl-S)")
-        # self.delete = QPushButton("Delete")
-        # self.right.addWidget(self.translate)
-
-        # self.buttons_row = QHBoxLayout()
-        # self.buttons_row.addWidget(self.new)
-        # self.buttons_row.addWidget(self.save)
-        # self.buttons_row.addWidget(self.delete)
-        # self.right.addLayout(self.buttons_row)
-
-        # self.translate.clicked.connect(self.translate_text)
-        # self.new.clicked.connect(self.new_note)
-        # self.notes_tree.currentItemChanged.connect(self.select_entry)
-        # self.notes_tree.itemClicked.connect(self.load_directory_on_click)
-        # self.notes_tree.itemExpanded.connect(self.load_directory_children)
-        # self.save.clicked.connect(self.save_note)
-        # self.delete.clicked.connect(self.delete_note)
-
-        # self.main = QHBoxLayout()
-        # self.main.addLayout(self.left, 5)
-        # self.main.addLayout(self.right, 5)
-
-        # self.setLayout(self.main)
-        # self.load_root_directory(self.current_dir)
+        self.provider_dropdown.textActivated.connect(self.provider_changed)
+        self.model_selection_dropdown.textActivated.connect(self.model_changed)
+        self.model_selection_text_box.returnPressed.connect(self.set_model_name)
 
     def load_root_directory(self, directory: Path):
         self.current_dir = directory
@@ -356,8 +314,8 @@ class Widget(QWidget):
 
         settings = self.settings_manager.settings
         provider_name = settings.provider_name.value
-        settings.source_language.value = self.combobox1.currentText()
-        settings.target_language.value = self.combobox2.currentText()
+        settings.source_language.value = self.source_language_dropdown.currentText()
+        settings.target_language.value = self.target_language_dropdown.currentText()
 
         self.right_body.setPlainText(f"Waiting for translation from {provider_name}")
         self.translate_button.setEnabled(False)
@@ -393,19 +351,19 @@ class Widget(QWidget):
 
         selected_model = self.settings_manager.get_selected_model()
 
-        self.combobox4.clear()
+        self.model_selection_dropdown.clear()
         if selected_model:
-            self.combobox4.addItem(selected_model)
-            # self.combobox4.setCurrentText(selected_model)
+            self.model_selection_dropdown.addItem(selected_model)
+            # self.model_selection_dropdown.setCurrentText(selected_model)
         self.load_models_async()
 
     def load_models_async(self):
         if self.model_list_thread is not None:
             return
 
-        self.combobox3.setEnabled(False)
-        self.combobox4.setEnabled(False)
-        self.combobox4.setToolTip("Loading available models...")
+        self.provider_dropdown.setEnabled(False)
+        self.model_selection_dropdown.setEnabled(False)
+        self.model_selection_dropdown.setToolTip("Loading available models...")
 
         self.model_list_thread = ModelListThread(self.settings_manager)
         self.model_list_thread.models_ready.connect(self.models_loaded)
@@ -421,25 +379,26 @@ class Widget(QWidget):
         if selected_model not in models:
             print(f"{selected_model} not in the models list. Something went wrong!")
 
-        self.combobox4.blockSignals(True)
-        self.combobox4.clear()
-        self.combobox4.addItems(models)
+        self.model_selection_dropdown.blockSignals(True)
+        self.model_selection_dropdown.clear()
+        self.model_selection_dropdown.addItems(models)
 
         if selected_model:
-            self.combobox4.setCurrentText(selected_model)
+            self.model_selection_dropdown.setCurrentText(selected_model)
 
-        self.combobox4.blockSignals(False)
-        self.combobox4.setToolTip("")
+        self.model_selection_dropdown.blockSignals(False)
+        self.model_selection_dropdown.setToolTip("")
 
     @Slot(str)
     def model_loading_failed(self, message: str):
-        self.combobox4.setToolTip(f"Could not load available models: {message}")
+        #self.model_selection_dropdown.setToolTip(f"Could not load available models: {message}")
+        self.right_body.setPlainText(f"Could not load available models: {message}")
 
     @Slot()
     def model_loading_finished(self):
         self.model_list_thread = None
-        self.combobox3.setEnabled(True)
-        self.combobox4.setEnabled(True)
+        self.provider_dropdown.setEnabled(True)
+        self.model_selection_dropdown.setEnabled(True)
 
     @Slot(str)
     def model_changed(self, model_name: str):
@@ -450,6 +409,20 @@ class Widget(QWidget):
             return
 
         settings.allowed_providers[provider_name]["model"].value = model_name
+
+    @Slot()
+    def set_model_name(self, ):
+        entered_model_name = self.model_selection_text_box.text().strip()
+        index = self.model_selection_dropdown.findText(entered_model_name)
+
+        if index < 0:
+            self.model_selection_text_box.clear()
+            self.model_selection_text_box.setPlaceholderText("Inserted model not recognized.")
+            return
+
+        self.model_selection_dropdown.setCurrentIndex(index)
+        self.model_changed(entered_model_name)
+        self.model_selection_text_box.clear()
 
     # @Slot(str)
     # def provider_changed(self, model_name: str):
