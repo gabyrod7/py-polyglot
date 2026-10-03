@@ -24,8 +24,6 @@ class TranslationThread(QThread):
     result_ready = Signal(object)
     failed = Signal(str)
 
-    # def __init__(self, settings: Settings, query: str, parent=None):
-    #    super().__init__(parent)
     def __init__(self, settings: Settings, query: str):
         super().__init__()
         self.settings = settings
@@ -144,6 +142,8 @@ class Widget(QWidget):
         self.load_models_async()
 
         self.translate_button.clicked.connect(self.translate_text)
+        self.source_language_dropdown.textActivated.connect(self.source_language_changed)
+        self.target_language_dropdown.textActivated.connect(self.target_language_changed)
         self.provider_dropdown.textActivated.connect(self.provider_changed)
         self.model_selection_dropdown.textActivated.connect(self.model_changed)
         self.model_selection_text_box.returnPressed.connect(self.set_model_name)
@@ -314,8 +314,8 @@ class Widget(QWidget):
 
         settings = self.settings_manager.settings
         provider_name = settings.provider_name.value
-        settings.source_language.value = self.source_language_dropdown.currentText()
-        settings.target_language.value = self.target_language_dropdown.currentText()
+        #settings.source_language.value = self.source_language_dropdown.currentText()
+        #settings.target_language.value = self.target_language_dropdown.currentText()
 
         self.right_body.setPlainText(f"Waiting for translation from {provider_name}")
         self.translate_button.setEnabled(False)
@@ -344,6 +344,29 @@ class Widget(QWidget):
     def translation_finished(self):
         self.translation_thread = None
         self.translate_button.setEnabled(True)
+
+    @Slot()
+    def source_language_changed(self, language: str):
+        if language == self.settings_manager.settings.source_language.value:
+            return 
+
+        if language == self.settings_manager.settings.target_language.value:
+            self.settings_manager.settings.target_language.value = self.settings_manager.settings.source_language.value
+            self.target_language_dropdown.setCurrentText(self.settings_manager.settings.target_language.value)
+
+        self.settings_manager.settings.source_language.value = language
+
+    @Slot()
+    def target_language_changed(self, new_target_language: str):
+        if new_target_language == self.settings_manager.settings.target_language.value:
+            return 
+
+        if new_target_language == self.settings_manager.settings.source_language.value:
+            self.settings_manager.settings.source_language.value = self.settings_manager.settings.target_language.value
+            self.source_language_dropdown.setCurrentText(self.settings_manager.settings.source_language.value)
+
+        self.settings_manager.settings.target_language.value = new_target_language
+
 
     @Slot(str)
     def provider_changed(self, provider_name: str):
@@ -446,16 +469,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.edit_menu = self.menu.addMenu("Edit")
         self.tool_menu = self.menu.addMenu("Tools")
 
-        # new_action = self.file_menu.addAction("New", widget.new_note)
-        # new_action.setShortcut("Ctrl+N")
-
-        # save_action = self.file_menu.addAction("Save", widget.save_note)
-        # save_action.setShortcut("Ctrl+S")
-
         quit_action = self.file_menu.addAction("Quit", self.close)
         quit_action.setShortcut("Ctrl+Q")
-
-        # self.edit_menu.addAction("Delete", widget.delete_note)
 
         translate_action = self.tool_menu.addAction("Translate", widget.translate_text)
         translate_action.setShortcut("Ctrl+T")
