@@ -96,7 +96,9 @@ class Widget(QWidget):
             self.target_language_dropdown.setCurrentText(target_language)
 
         self.provider_dropdown = QComboBox()
-        self.provider_dropdown.addItems(settings_manager.settings.allowed_providers.keys())
+        self.provider_dropdown.addItems(
+            settings_manager.settings.allowed_providers.keys()
+        )
         provider_name = settings_manager.settings.provider_name.value
         if provider_name is not None:
             self.provider_dropdown.setCurrentText(provider_name)
@@ -142,8 +144,12 @@ class Widget(QWidget):
         self.load_models_async()
 
         self.translate_button.clicked.connect(self.translate_text)
-        self.source_language_dropdown.textActivated.connect(self.source_language_changed)
-        self.target_language_dropdown.textActivated.connect(self.target_language_changed)
+        self.source_language_dropdown.textActivated.connect(
+            self.source_language_changed
+        )
+        self.target_language_dropdown.textActivated.connect(
+            self.target_language_changed
+        )
         self.provider_dropdown.textActivated.connect(self.provider_changed)
         self.model_selection_dropdown.textActivated.connect(self.model_changed)
         self.model_selection_text_box.returnPressed.connect(self.set_model_name)
@@ -314,8 +320,8 @@ class Widget(QWidget):
 
         settings = self.settings_manager.settings
         provider_name = settings.provider_name.value
-        #settings.source_language.value = self.source_language_dropdown.currentText()
-        #settings.target_language.value = self.target_language_dropdown.currentText()
+        # settings.source_language.value = self.source_language_dropdown.currentText()
+        # settings.target_language.value = self.target_language_dropdown.currentText()
 
         self.right_body.setPlainText(f"Waiting for translation from {provider_name}")
         self.translate_button.setEnabled(False)
@@ -346,27 +352,34 @@ class Widget(QWidget):
         self.translate_button.setEnabled(True)
 
     @Slot()
-    def source_language_changed(self, language: str):
-        if language == self.settings_manager.settings.source_language.value:
-            return 
+    def source_language_changed(self, new_source_language: str):
+        if new_source_language == self.settings_manager.settings.source_language.value:
+            return
 
-        if language == self.settings_manager.settings.target_language.value:
-            self.settings_manager.settings.target_language.value = self.settings_manager.settings.source_language.value
-            self.target_language_dropdown.setCurrentText(self.settings_manager.settings.target_language.value)
+        if new_source_language == self.settings_manager.settings.target_language.value:
+            self.settings_manager.settings.target_language.value = (
+                self.settings_manager.settings.source_language.value
+            )
+            self.target_language_dropdown.setCurrentText(
+                self.settings_manager.settings.target_language.value
+            )
 
-        self.settings_manager.settings.source_language.value = language
+        self.settings_manager.settings.source_language.value = new_source_language
 
     @Slot()
     def target_language_changed(self, new_target_language: str):
         if new_target_language == self.settings_manager.settings.target_language.value:
-            return 
+            return
 
         if new_target_language == self.settings_manager.settings.source_language.value:
-            self.settings_manager.settings.source_language.value = self.settings_manager.settings.target_language.value
-            self.source_language_dropdown.setCurrentText(self.settings_manager.settings.source_language.value)
+            self.settings_manager.settings.source_language.value = (
+                self.settings_manager.settings.target_language.value
+            )
+            self.source_language_dropdown.setCurrentText(
+                self.settings_manager.settings.source_language.value
+            )
 
         self.settings_manager.settings.target_language.value = new_target_language
-
 
     @Slot(str)
     def provider_changed(self, provider_name: str):
@@ -414,7 +427,7 @@ class Widget(QWidget):
 
     @Slot(str)
     def model_loading_failed(self, message: str):
-        #self.model_selection_dropdown.setToolTip(f"Could not load available models: {message}")
+        # self.model_selection_dropdown.setToolTip(f"Could not load available models: {message}")
         self.right_body.setPlainText(f"Could not load available models: {message}")
 
     @Slot()
@@ -434,13 +447,17 @@ class Widget(QWidget):
         settings.allowed_providers[provider_name]["model"].value = model_name
 
     @Slot()
-    def set_model_name(self, ):
+    def set_model_name(
+        self,
+    ):
         entered_model_name = self.model_selection_text_box.text().strip()
         index = self.model_selection_dropdown.findText(entered_model_name)
 
         if index < 0:
             self.model_selection_text_box.clear()
-            self.model_selection_text_box.setPlaceholderText("Inserted model not recognized.")
+            self.model_selection_text_box.setPlaceholderText(
+                "Inserted model not recognized."
+            )
             return
 
         self.model_selection_dropdown.setCurrentIndex(index)
