@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets
 
+from core.config import Settings, SettingsManager
 from gui.window import MainWindow, Widget
-from core.config import SettingsManager, Settings
 
 
 def main(settings_manager: SettingsManager | None = None) -> int:

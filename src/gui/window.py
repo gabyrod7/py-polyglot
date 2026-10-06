@@ -3,19 +3,19 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6 import QtWidgets
-from PySide6.QtCore import QThread, Signal, Qt, Slot
+from PySide6.QtCore import Qt, QThread, Signal, Slot
 from PySide6.QtWidgets import (
+    QComboBox,
     QHBoxLayout,
+    QLineEdit,
     QPushButton,
     QTextEdit,
-    QLineEdit,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
-    QComboBox,
 )
 
-from core.config import SettingsManager, Settings
+from core.config import Settings, SettingsManager
 from core.result import Result
 from core.translate import run_translate
 
