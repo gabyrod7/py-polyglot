@@ -28,7 +28,7 @@ jobs:
         run: uv lock --check
 
       - name: Run Ruff
-        run: uv ruff --locked --only-group dev check .
+        run: uv run ruff --locked --only-group dev check .
 
       - name: Build package
         run: uv build
