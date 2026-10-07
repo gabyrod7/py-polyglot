@@ -1,16 +1,12 @@
-import random
-from dataclasses import dataclass
-from pathlib import Path
-
 from PySide6 import QtWidgets
-from PySide6.QtCore import Qt, QThread, Signal, Slot
+from PySide6.QtCore import QThread, Signal, Slot
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLineEdit,
     QPushButton,
     QTextEdit,
-    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -59,14 +55,6 @@ class ModelListThread(QThread):
                 )
         except Exception as exc:
             self.failed.emit(str(exc))
-
-
-@dataclass
-class DirectoryEntry:
-    path: Path
-    is_dir: bool
-    body: str | None = None
-    children_loaded: bool = False
 
 
 class Widget(QWidget):
@@ -154,163 +142,6 @@ class Widget(QWidget):
         self.model_selection_dropdown.textActivated.connect(self.model_changed)
         self.model_selection_text_box.returnPressed.connect(self.set_model_name)
 
-    def load_root_directory(self, directory: Path):
-        self.current_dir = directory
-        self.notes_tree.clear()
-
-        root_entry = DirectoryEntry(directory, is_dir=True)
-        root_item = QTreeWidgetItem([directory.name or str(directory)])
-        root_item.setData(0, Qt.ItemDataRole.UserRole, root_entry)
-        root_item.setChildIndicatorPolicy(
-            QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
-        )
-
-        self.notes_tree.addTopLevelItem(root_item)
-        self.load_directory_children(root_item)
-        root_item.setExpanded(True)
-
-    @Slot(QTreeWidgetItem)
-    def load_directory_children(self, item: QTreeWidgetItem):
-        entry = item.data(0, Qt.ItemDataRole.UserRole)
-
-        if entry is None or not entry.is_dir or entry.children_loaded:
-            return
-
-        try:
-            paths = sorted(
-                entry.path.iterdir(),
-                key=lambda path: (not path.is_dir(), path.name.lower()),
-            )
-        except OSError:
-            entry.children_loaded = True
-            return
-
-        for path in paths:
-            child_entry = DirectoryEntry(path=path, is_dir=path.is_dir())
-            child_item = QTreeWidgetItem([path.name])
-            child_item.setData(0, Qt.ItemDataRole.UserRole, child_entry)
-
-            if path.is_dir():
-                child_item.setChildIndicatorPolicy(
-                    QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
-                )
-
-            item.addChild(child_item)
-
-        entry.children_loaded = True
-
-    @Slot(QTreeWidgetItem, int)
-    def load_directory_on_click(self, item: QTreeWidgetItem, column: int):
-        self.load_directory_children(item)
-
-    @Slot()
-    def new_note(self):
-        parent_item = self.directory_for_new_note()
-        parent_entry = parent_item.data(0, Qt.ItemDataRole.UserRole)
-
-        if not parent_entry.children_loaded:
-            self.load_directory_children(parent_item)
-
-        num = random.randint(1, 100000)
-        file_name = f"tmp{num}.txt"
-        body = f"{[x for x in range(random.randint(1, 100))]}"
-        path = parent_entry.path / file_name
-        entry = DirectoryEntry(path=path, is_dir=False, body=body)
-        item = QTreeWidgetItem([file_name])
-        item.setData(0, Qt.ItemDataRole.UserRole, entry)
-
-        parent_item.addChild(item)
-        parent_item.setExpanded(True)
-        self.notes_tree.setCurrentItem(item)
-
-    def directory_for_new_note(self) -> QTreeWidgetItem:
-        item = self.notes_tree.currentItem() or self.notes_tree.topLevelItem(0)
-        entry = item.data(0, Qt.ItemDataRole.UserRole)
-
-        if entry.is_dir:
-            return item
-
-        return item.parent() or self.notes_tree.topLevelItem(0)
-
-    @Slot(QTreeWidgetItem, QTreeWidgetItem)
-    def select_entry(
-        self, current: QTreeWidgetItem | None, previous: QTreeWidgetItem | None
-    ):
-        if current is None:
-            return
-
-        entry = current.data(0, Qt.ItemDataRole.UserRole)
-
-        if entry.is_dir:
-            self.note_file_name_edit.setText(entry.path.name)
-            self.body_edit.clear()
-            self.body_edit.setEnabled(False)
-            return
-
-        if entry.body is None:
-            try:
-                entry.body = entry.path.read_text()
-            except OSError as error:
-                entry.body = f"Could not read file: {error}"
-            except UnicodeDecodeError as error:
-                entry.body = f"Could not decode file as text: {error}"
-
-        self.body_edit.setEnabled(True)
-        self.note_file_name_edit.setText(entry.path.name)
-        self.body_edit.setPlainText(entry.body)
-
-    @Slot()
-    def save_note(self):
-        current_item = self.notes_tree.currentItem()
-        if current_item is None:
-            return
-
-        entry = current_item.data(0, Qt.ItemDataRole.UserRole)
-        if entry.is_dir:
-            return
-
-        file_name = self.note_file_name_edit.text()
-        if not file_name:
-            return
-
-        body = self.body_edit.toPlainText()
-        new_path = entry.path.with_name(file_name)
-
-        if new_path != entry.path and entry.path.exists():
-            entry.path.rename(new_path)
-
-        new_path.write_text(body)
-        entry.path = new_path
-        entry.body = body
-        current_item.setText(0, file_name)
-
-    @Slot()
-    def delete_note(self):
-        current_item = self.notes_tree.currentItem()
-        if current_item is None:
-            return
-
-        entry = current_item.data(0, Qt.ItemDataRole.UserRole)
-        if entry.is_dir:
-            return
-
-        if entry.path.exists():
-            entry.path.unlink()
-
-        parent = current_item.parent()
-        if parent is None:
-            index = self.notes_tree.indexOfTopLevelItem(current_item)
-            self.notes_tree.takeTopLevelItem(index)
-        else:
-            parent.removeChild(current_item)
-
-        self.body_edit.clear()
-        self.note_file_name_edit.clear()
-
-    @Slot(str)
-    def filter_notes(self, text):
-        return
-
     @Slot()
     def translate_text(self):
         query = self.left_body.toPlainText().strip()
@@ -323,12 +154,14 @@ class Widget(QWidget):
         # settings.source_language.value = self.source_language_dropdown.currentText()
         # settings.target_language.value = self.target_language_dropdown.currentText()
 
+        self.right_body.setEnabled(False)
+        self.right_body.setTextColor(QColor("black"))
         self.right_body.setPlainText(f"Waiting for translation from {provider_name}")
         self.translate_button.setEnabled(False)
 
         self.translation_thread = TranslationThread(settings, query)
         self.translation_thread.result_ready.connect(self.translation_ready)
-        # self.translation_thread.failed.connect(self.translation_failed)
+        self.translation_thread.failed.connect(self.translation_failed)
         self.translation_thread.finished.connect(self.translation_finished)
         self.translation_thread.finished.connect(self.translation_thread.deleteLater)
         self.translation_thread.start()
@@ -350,6 +183,7 @@ class Widget(QWidget):
     def translation_finished(self):
         self.translation_thread = None
         self.translate_button.setEnabled(True)
+        self.right_body.setEnabled(True)
 
     @Slot()
     def source_language_changed(self, new_source_language: str):
@@ -463,17 +297,7 @@ class Widget(QWidget):
         self.model_selection_dropdown.setCurrentIndex(index)
         self.model_changed(entered_model_name)
         self.model_selection_text_box.clear()
-
-    # @Slot(str)
-    # def provider_changed(self, model_name: str):
-    #    settings = self.settings_manager.settings
-    #    provider_name = settings.provider_name.value
-
-    #    if provider_name not in settings.allowed_providers:
-    #        return
-
-    #    model_setting = settings.allowed_providers[provider_name]["model"]
-    #    model_setting.value = model_name
+        self.model_selection_text_box.setPlaceholderText("Insert model name.")
 
 
 class MainWindow(QtWidgets.QMainWindow):
