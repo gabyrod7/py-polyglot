@@ -2,47 +2,59 @@
 
 [![CI](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml/badge.svg)](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml)
 
-A Python command-line tool to translate words, phrases, and sentences using either a local Hugging Face model or a remote LLM provider.
+Py Polyglot translates words, phrases, and sentences with either a local Hugging Face model or a remote LLM provider. It includes both a command-line interface and a PySide6 desktop interface.
 
-The CLI currently supports:
+Supported providers:
 
-- Local translation with Helsinki-NLP `opus-mt_tiny` models through Hugging Face
-- Remote translation with OpenAI, Anthropic, or Gemini
+- Hugging Face with Helsinki-NLP translation models
+- OpenAI
+- Anthropic
+- Gemini
 
 ## Requirements
 
 - Python 3.12 or newer
 - `uv` or `pip`
-- API keys for any remote provider you want to use
-- A Hugging Face token if the selected local model requires one
+- A functioning system keyring backend
+- An API key for each remote provider you use
+- A Hugging Face token when required by the selected model
+
+Py Polyglot treats keyring read and write errors as fatal. It does not fall back to storing API keys in the plaintext configuration file. This requirement also applies when using local models.
 
 ## Installation
 
-For local development from the cloned repository, install the project and dependencies with:
+For local development, clone the repository and install the project and its dependencies:
 
 ```bash
 uv sync
 ```
 
-Then run the CLI with:
+Run the CLI from the repository:
 
 ```bash
 uv run py-polyglot --help
 ```
 
-To install the CLI as a user-level tool from the repository, run:
+Run the desktop interface:
+
+```bash
+uv run py-polyglot-gui
+```
+
+To install the commands as user-level tools from the repository:
 
 ```bash
 uv tool install .
 ```
 
-Then run it directly:
+You can then run them directly:
 
 ```bash
 py-polyglot --help
+py-polyglot-gui
 ```
 
-You can also install it with pip:
+Alternatively, install with pip:
 
 ```bash
 python -m pip install .
@@ -50,133 +62,168 @@ python -m pip install .
 
 ## Quick Start
 
+The defaults use Hugging Face to translate from German to English with `Helsinki-NLP/opus-mt_tiny_deu_eng`:
+
+```bash
+uv run py-polyglot translate "laufen"
+```
+
+Override the languages for one translation with `-s`/`--source_language` and `-t`/`--target_language`:
+
+```bash
+uv run py-polyglot translate "hello" \
+  --source_language English \
+  --target_language Spanish
+```
+
+Use `--verbose` to enable additional translation details:
+
+```bash
+uv run py-polyglot translate "hello" --verbose
+```
+
+## Configuration
+
+Use the `config` command to change persistent settings. The supported configured languages are English, German, and Spanish.
+
 Choose a provider:
 
 ```bash
 uv run py-polyglot config --set_provider openai
 ```
 
-Set the model and API key/token for that provider:
-
-```bash
-uv run py-polyglot config --set_model_name gpt-4.1-mini
-uv run py-polyglot config --set_api_key
-```
-
-You will be prompted to enter your API key or token without echoing. Set default languages:
-
-```bash
-uv run py-polyglot config --set_source_language English --set_target_language Spanish
-```
-
-Translate text:
-
-```bash
-uv run py-polyglot translate "hello"
-```
-
-You can also provide languages per translation:
-
-```bash
-uv run py-polyglot translate "hello" --source_language English --target_language Spanish
-```
-
-## Local Translation
-
-Local translation uses Hugging Face models from Helsinki-NLP. Only models whose names contain `opus-mt_tiny` are supported.
-
-Configure Hugging Face as the provider:
-
-```bash
-uv run py-polyglot config --set_provider huggingface
-```
-
-List Hugging Face models for the configured provider, then choose an `opus-mt_tiny` model:
-
-```bash
-uv run py-polyglot config --list_model_names
-```
-
-Set a local model:
-
-```bash
-uv run py-polyglot config --set_model_name Helsinki-NLP/opus-mt_tiny-en-es
-```
-
-Each local model is trained for a specific source and target language pair. That information is encoded at the end of the model name. In the example above, the model name ends with `en-es`, so the model translates from English to Spanish. For Hugging Face translations, the model determines the language pair.
-
-Translate text locally:
-
-```bash
-uv run py-polyglot translate "hello"
-```
-## Remote Translation
-
-Remote translation uses one of the supported LLM providers: `openai`, `anthropic`, or `gemini`.
-
-Configure a remote provider:
-
-```bash
-uv run py-polyglot config --set_provider openai
-```
-
-Set the API key for the configured provider:
+For a remote provider, save its API key before requesting its model list:
 
 ```bash
 uv run py-polyglot config --set_api_key
 ```
 
-List available models:
+The API key is entered without echoing and stored in the system keyring. List the models available from the selected provider:
 
 ```bash
 uv run py-polyglot config --list_model_names
 ```
 
-Set the model:
+Select a model:
 
 ```bash
 uv run py-polyglot config --set_model_name gpt-4.1-mini
 ```
 
-Translate text remotely:
+Set the default languages:
 
 ```bash
-uv run py-polyglot translate "hello" --source_language English --target_language Spanish
+uv run py-polyglot config \
+  --set_source_language English \
+  --set_target_language Spanish
 ```
 
-## Configuration
+Configuration options can be combined. They are applied in dependency order: provider, API key, model listing or selection, and then languages. Their textual order on the command line does not affect execution.
 
-The CLI stores non-secret settings in a local config file and stores secrets in the system keyring.
+### Configuration storage
 
-Non-secret settings are written to `config.env` under the user's config directory, usually `~/.config/py-polyglot/config.env` on Linux/macOS. The config file path can be obtained by running:
+Non-secret settings are stored in `config.env` under the user configuration directory, normally `~/.config/py-polyglot/config.env` on Linux. Print the active path with:
 
 ```bash
 uv run py-polyglot config --print_config_file_path
 ```
 
-Secrets are stored with the service name `py-polyglot` in the system keyring. Environment variables with the same names can still be used and take precedence over config file and keyring values.
+Secrets are stored under the `py-polyglot` service name in the system keyring. Environment variables with matching names take precedence over values loaded from the configuration file or keyring.
 
-Only the values for your selected provider are required. For example, if `PROVIDER` is set to `openai`, then `OPENAI_API_KEY` and `OPENAI_MODEL` must also be configured.
+Only credentials for the selected provider need values. For example, OpenAI translation requires `OPENAI_API_KEY`, while a public Hugging Face model may not require `HF_TOKEN`. A functioning keyring backend is still required.
 
-## Environment variables
-
-Information on all supported environment variables can be obtained by using the `info` command:
+Display all supported environment variables and their descriptions with:
 
 ```bash
 uv run py-polyglot info
 ```
 
-## Supported Providers
+## Local Hugging Face Translation
 
-- `huggingface`
-- `openai`
-- `anthropic`
-- `gemini`
+Select Hugging Face as the provider:
+
+```bash
+uv run py-polyglot config --set_provider huggingface
+```
+
+List the supported Helsinki-NLP models:
+
+```bash
+uv run py-polyglot config --list_model_names
+```
+
+Select one of the returned model IDs:
+
+```bash
+uv run py-polyglot config \
+  --set_model_name Helsinki-NLP/opus-mt_tiny_eng_spa
+```
+
+Each local model is trained for a particular language pair. The pair is encoded in the model name; for example, `eng_spa` translates from English to Spanish. For local translation, the selected model determines the effective language pair.
+
+A model is downloaded the first time it is used. Download size, speed, translation quality, and token requirements depend on the selected model.
+
+## Remote Translation
+
+Remote translation is available through OpenAI, Anthropic, and Gemini. Configure a provider in this order:
+
+```bash
+uv run py-polyglot config --set_provider openai
+uv run py-polyglot config --set_api_key
+uv run py-polyglot config --list_model_names
+uv run py-polyglot config --set_model_name gpt-4.1-mini
+```
+
+Then translate text:
+
+```bash
+uv run py-polyglot translate "hello" \
+  --source_language English \
+  --target_language Spanish
+```
+
+## Desktop Interface
+
+Start the GUI with:
+
+```bash
+uv run py-polyglot-gui
+```
+
+The interface provides:
+
+- Source and target language selectors
+- Provider and model selectors
+- Background model loading and translation
+- Automatic source/target swapping when the same language is selected
+- `Ctrl+T` to translate and `Ctrl+Q` to quit
+
+Configure remote API keys through the CLI before selecting remote models in the GUI. Provider, model, and language selections made in the GUI apply to the current session.
+
+## Development
+
+Run the unit tests:
+
+```bash
+uv run python -m unittest discover -s tests -v
+```
+
+Run linting and formatting checks:
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+```
+
+Build the source distribution and wheel:
+
+```bash
+uv build
+```
 
 ## Limitations
 
-Before translating, you must configure a provider and model.
-
-For remote providers, you must also configure an API key.
-
-Local model quality, supported language pairs, and download requirements depend on the selected Hugging Face model.
+- A usable system keyring backend is required.
+- Remote translation requires a valid API key and model access for the selected provider.
+- Available remote models depend on the provider account and API.
+- Local model support, quality, and resource requirements depend on the selected Hugging Face model.
