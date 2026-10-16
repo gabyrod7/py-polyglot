@@ -139,32 +139,43 @@ def main(
             if not config_args_used:
                 config_parser.print_help()
 
-            if args.list_model_names:
-                settings_manager.list_models()
-            if args.set_model_name is not None:
-                result = settings_manager.set_model_name(model_name=args.set_model_name)
-                if not result.ok:
-                    print(result.message)
             if args.set_provider is not None:
                 result = set_provider(settings_manager, args.set_provider)
                 if not result.ok:
                     print(result.message)
+                    return 1
             if args.set_api_key:
                 result = settings_manager.set_api_key()
                 if not result.ok:
                     print(result.message)
+                    return 1
+            if args.list_model_names:
+                result = settings_manager.list_models()
+                if not result.ok:
+                    print(result.message)
+                    return 1
+
+                for model in result.value:
+                    print(model)
+            if args.set_model_name is not None:
+                result = settings_manager.set_model_name(model_name=args.set_model_name)
+                if not result.ok:
+                    print(result.message)
+                    return 1
             if args.set_source_language is not None:
                 result = settings_manager.set_language(
                     args.set_source_language, "source"
                 )
                 if not result.ok:
                     print(result.message)
+                    return 1
             if args.set_target_language is not None:
                 result = settings_manager.set_language(
                     args.set_target_language, "target"
                 )
                 if not result.ok:
                     print(result.message)
+                    return 1
             if args.print_config_file_path:
                 print(settings_manager.get_config_file_path())
 
