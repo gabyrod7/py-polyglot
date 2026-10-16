@@ -1,30 +1,26 @@
 import argparse
 
-from core.config import load_config_file
-
-ENVIRONMENT_HELP = """
-Environment variables:
-  PROVIDER                  Provider to use: huggingface, openai, anthropic, gemini.
-  SOURCE_LANGUAGE           Default source language for remote translations.
-  TARGET_LANGUAGE           Default target language for remote translations.
-  HF_MODEL                  Hugging Face model name.
-  OPENAI_MODEL              OpenAI model name.
-  ANTHROPIC_MODEL           Anthropic model name.
-  GEMINI_MODEL              Gemini model name.
-  HF_TOKEN                  Hugging Face token.
-  OPENAI_API_KEY            OpenAI API key.
-  ANTHROPIC_API_KEY         Anthropic API key.
-  GEMINI_API_KEY            Gemini API key.
-"""
-
-load_config_file()
+from core.config import Settings, SettingsManager
+from core.result import Result
 
 
-def main():
+def main(
+    argv: list[str] | None = None,
+    settings_manager: SettingsManager | None = None,
+) -> int:
+    if settings_manager is None:
+        settings = Settings()
+        settings_manager = SettingsManager(settings)
+        result = settings_manager.load()
+        if not result.ok:
+            print(result.message)
+            return 1
+    else:
+        settings = settings_manager.settings
+
     parser = argparse.ArgumentParser(
         prog="py-polyglot",
         description="Translate text using Hugging Face or remote LLM providers.",
-        #        epilog=ENVIRONMENT_HELP,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -34,7 +30,7 @@ def main():
         help="Translate text",
     )
     translate_parser.add_argument("query", type=str, help="Word or phrase to translate")
-    translate_parser.add_argument("--verbose", action="store_false", help="")
+    translate_parser.add_argument("--verbose", action="store_true", help="")
     translate_parser.add_argument(
         "-s",
         "--source_language",
@@ -110,32 +106,30 @@ def main():
         help="Print path to file where settings are stored.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     match args.command:
         case "translate":
-            from core.translate import run_translate_command
+            from core.translate import run_translate
 
-            run_translate_command(
-                args.query,
-                args.verbose,
-                args.source_language,
-                args.target_language,
-            )
+            if args.source_language:
+                settings.source_language.value = args.source_language
+            if args.target_language:
+                settings.target_language.value = args.target_language
+            if args.verbose:
+                settings.verbose.value = "True"
+
+            result = run_translate(settings, args.query)
+            if not result.ok:
+                print(result.message)
+                return 1
+
+            print(result.value)
 
         case "info":
-            print(ENVIRONMENT_HELP.strip())
+            settings_manager.print_environment_info()
 
         case "config":
-            from core.config import (
-                get_config_file_path,
-                list_models,
-                set_api_key,
-                set_language,
-                set_model_name,
-                set_provider,
-            )
-
             config_args_used = any(
                 getattr(args, action.dest) != config_parser.get_default(action.dest)
                 for action in config_parser._actions
@@ -145,24 +139,70 @@ def main():
             if not config_args_used:
                 config_parser.print_help()
 
-            if args.list_model_names:
-                list_models()
-            if args.set_model_name is not None:
-                set_model_name(model_name=args.set_model_name)
             if args.set_provider is not None:
-                set_provider(args.set_provider)
+                result = set_provider(settings_manager, args.set_provider)
+                if not result.ok:
+                    print(result.message)
+                    return 1
             if args.set_api_key:
-                set_api_key()
+                result = settings_manager.set_api_key()
+                if not result.ok:
+                    print(result.message)
+                    return 1
+            if args.list_model_names:
+                result = settings_manager.list_models()
+                if not result.ok:
+                    print(result.message)
+                    return 1
+
+                for model in result.value:
+                    print(model)
+            if args.set_model_name is not None:
+                result = settings_manager.set_model_name(model_name=args.set_model_name)
+                if not result.ok:
+                    print(result.message)
+                    return 1
             if args.set_source_language is not None:
-                set_language(args.set_source_language, "source")
+                result = settings_manager.set_language(
+                    args.set_source_language, "source"
+                )
+                if not result.ok:
+                    print(result.message)
+                    return 1
             if args.set_target_language is not None:
-                set_language(args.set_target_language, "target")
+                result = settings_manager.set_language(
+                    args.set_target_language, "target"
+                )
+                if not result.ok:
+                    print(result.message)
+                    return 1
             if args.print_config_file_path:
-                print(get_config_file_path())
+                print(settings_manager.get_config_file_path())
 
         case _:
             parser.print_help()
 
+    return 0
+
+
+def set_provider(settings_manager: SettingsManager, provider_name: str) -> Result:
+    settings = settings_manager.settings
+    if provider_name not in settings.allowed_providers:
+        print("Choose among the following providers:")
+        for provider in settings.allowed_providers:
+            print(provider)
+
+    while provider_name not in settings.allowed_providers:
+        provider_name = input("Input provider: ").strip()
+
+    result = settings_manager.set_setting(
+        setting=settings.provider_name, value=provider_name
+    )
+    if not result.ok:
+        return result
+
+    return Result()
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
