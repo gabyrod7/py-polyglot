@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml/badge.svg)](https://github.com/gabyrod7/py-polyglot/actions/workflows/ci.yml)
 
-Py Polyglot translates words, phrases, and sentences with either a local Hugging Face model or a remote LLM provider. It includes both a command-line interface and a PySide6 desktop interface.
+py-polyglot translates words, phrases, and sentences with either a local Hugging Face model or a remote LLM provider. It includes both a command-line interface and a PySide6 desktop interface.
 
 Supported providers:
 
@@ -19,7 +19,7 @@ Supported providers:
 - An API key for each remote provider you use
 - A Hugging Face token when required by the selected model
 
-Py Polyglot treats keyring read and write errors as fatal. It does not fall back to storing API keys in the plaintext configuration file. This requirement also applies when using local models.
+py-polyglot treats keyring read and write errors as fatal. It does not fall back to storing API keys in the plaintext configuration file. This requirement also applies when using local models.
 
 ## Installation
 
