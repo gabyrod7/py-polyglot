@@ -526,13 +526,13 @@ def run_huggingface_model(
             message="No model has been chosen.",
         )
 
+    print(f"Using model: {model_name}")
+
     verbose = _is_enabled(settings.verbose.value)
     if verbose:
         from transformers.utils import logging
 
         logging.disable_progress_bar()
-    else:
-        print(f"Using model: {model_name}")
 
     tokenizer = MarianTokenizer.from_pretrained(model_name, token=hf_token)
     model = MarianMTModel.from_pretrained(model_name, token=hf_token).to(torch_device)

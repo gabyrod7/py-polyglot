@@ -48,7 +48,7 @@ class Settings:
         )
         self.hf_model = Setting(
             "HF_MODEL",
-            value="Helsinki-NLP/opus-mt_tiny_deu-eng",
+            value="Helsinki-NLP/opus-mt_tiny_deu_eng",
             environment_info="Hugging Face model ID to use for translations.",
         )
         self.hf_token = Setting(
@@ -308,7 +308,7 @@ class SettingsManager:
         # print(f"{model_setting.key} set to {model_name}")
         return Result(message=f"{model_setting.key} set to {model_name}")
 
-    def list_models(self) -> None:
+    def list_models(self) -> Result:
         provider = self.settings.provider_name.value
 
         if provider is None:

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Result:
-    value: str | None = None
+    value: str | list[str] | None = None
     message: str | None = None
     error_code: str | None = None
 
